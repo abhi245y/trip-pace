@@ -28,9 +28,17 @@ input:disabled{color:var(--dim);background:transparent;border-style:dashed}
 input.num{width:110px;font-size:20px}
 .top{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:6px}
 .status{font-size:14px;color:var(--dim);display:flex;align-items:center;gap:8px}
-.dot{width:9px;height:9px;border-radius:50%;background:var(--dim)}
+.dot{width:9px;height:9px;border-radius:50%;background:var(--dim);transition:background-color .45s ease}
 .moving .dot{background:var(--ok)} .brief .dot{background:var(--amber)} .stopped .dot{background:var(--warn)}
-.speed{text-align:center;padding:18px 0 6px}
+/* the dot's beat rate is the state: unhurried moving, urgent stopped */
+@media(prefers-reduced-motion:no-preference){
+  .moving .dot{animation:beat 2.6s cubic-bezier(.2,.7,.3,1) infinite}
+  .brief .dot{animation:beat 1.3s cubic-bezier(.2,.7,.3,1) infinite}
+  .stopped .dot{animation:beat .9s cubic-bezier(.2,.7,.3,1) infinite}
+}
+@keyframes beat{0%{box-shadow:0 0 0 0 rgba(255,255,255,.4)}70%,100%{box-shadow:0 0 0 10px rgba(255,255,255,0)}}
+.speed{text-align:center;padding:18px 0 6px;position:relative}
+.speed>div{position:relative;z-index:1}
 .speed .n{font-size:118px;line-height:1;font-weight:200;letter-spacing:-.04em;font-variant-numeric:tabular-nums}
 .speed .u{font-size:15px;color:var(--dim);margin-top:2px}
 .speed .sub{font-size:14px;color:var(--dim);margin-top:10px}
@@ -84,6 +92,23 @@ h2{font-size:13px;font-weight:500;color:var(--dim);margin-bottom:10px}
 .dots i{width:5px;height:5px;border-radius:50%;background:#666}.dots i.cur{background:#e8e8e8}
 #sbExit{position:fixed;top:max(8px,env(safe-area-inset-top));right:12px;background:#111;border-color:#222;color:#888;z-index:901}
 @media(prefers-reduced-motion:no-preference){.pane{scroll-behavior:smooth}}
+/* ---- instrument ---- */
+/* mechanical odometer: each digit is a 0-9-0 strip offset by its own place value,
+   so the ones column rolls continuously and the tens only turn on carry */
+.roll{display:inline-flex;line-height:1;font-variant-numeric:tabular-nums}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+.roll .d{height:1em;width:1ch;overflow:hidden}
+.roll .d u{display:block;text-decoration:none}
+.roll .d i{display:block;height:1em;font-style:normal}
+#vf{position:absolute;inset:0;width:100%;height:100%;z-index:0;pointer-events:none}
+#sb>#vf{z-index:0}
+#sb .pw{z-index:1}
+/* the field is additive, so a streak head passing under text would otherwise take
+   the label from 6:1 down to 1.3:1. A black halo holds each glyph's own ground. */
+.w .lab,.w .kv,.w .mid{text-shadow:0 0 10px #000,0 0 4px #000}
+.w .big{text-shadow:0 0 14px #000,0 0 calc(var(--lit,0)*38px) rgba(190,220,255,calc(var(--lit,0)*.5))}
+.speed .u,.speed .sub{text-shadow:0 0 10px var(--bg),0 0 4px var(--bg)}
+.speed .n{text-shadow:0 0 14px var(--bg),0 0 calc(var(--lit,0)*30px) rgba(255,179,64,calc(var(--lit,0)*.42))}
 </style>
 </head>
 <body>
@@ -92,7 +117,7 @@ h2{font-size:13px;font-weight:500;color:var(--dim);margin-bottom:10px}
   <div class="status" id="gps">GPS ±—</div>
 </div>
 
-<div class="speed">
+<div class="speed" id="speedBox">
   <div class="n" id="spd">0</div>
   <div class="u">km/h now</div>
   <div class="sub">moving avg <b id="mavg">—</b> · trip avg <b id="tavg">—</b> · max <b id="max">—</b></div>
@@ -182,6 +207,62 @@ const msg=(text,tone='')=>{const e=$('msg');e.textContent=text;e.className='msg'
 let UNIT='km';const UF={km:1,m:1000,cm:100000};
 const fu=km=>{const v=km*UF[UNIT];return UNIT==='km'?v.toFixed(v<10?2:1):Math.round(v).toLocaleString()};
 const setV=(k,v)=>{const e=$(k);if(e)e.textContent=v;document.querySelectorAll(`[data-v="${k}"]`).forEach(x=>x.textContent=v)};
+// ---- instrument: spring-interpolated readouts ----
+// Data lives in S and is written by the intervals below. NUM only holds what the
+// screen is currently showing on its way there, so nothing here can move a number.
+const REDUCED=matchMedia('(prefers-reduced-motion: reduce)');
+const NUMFMT={spd:v=>String(Math.round(v)),odo:v=>fu(v)+' '+UNIT};
+const NUM={};
+const setN=(k,target)=>{const n=NUM[k]||(NUM[k]={v:target,vel:0});n.t=target;NUM[k]=n};
+const snapN=()=>{for(const k in NUM){NUM[k].t=0;NUM[k].v=0;NUM[k].vel=0}paintN()};
+const K=140,Z=.85;                                   // stiffness, damping ratio
+function springN(dt){
+  const c=2*Z*Math.sqrt(K);
+  for(const k in NUM){const n=NUM[k];
+    if(REDUCED.matches){n.v=n.t;n.vel=0;continue}
+    if(Math.abs(n.t-n.v)<1e-4&&Math.abs(n.vel)<1e-4){n.v=n.t;n.vel=0;continue}
+    n.vel+=(K*(n.t-n.v)-c*n.vel)*dt;n.v+=n.vel*dt;
+  }
+}
+function paintN(){
+  for(const k in NUM){const n=NUM[k];
+    if(k==='odo')document.querySelectorAll('#odo,[data-v="odo"]').forEach(e=>rollTo(e,n.v));
+    else setV(k,(NUMFMT[k]||fu)(n.v));
+  }
+}
+// mechanical odometer. Digit j counts in its own place, so the ones column turns
+// continuously and each column above it only moves as the one below carries.
+const ROLL=new WeakMap();
+function rollTo(el,v){
+  const txt=NUMFMT.odo(Math.max(0,v));
+  if(REDUCED.matches){if(el.textContent!==txt)el.textContent=txt;return}
+  const shape=txt.replace(/\d/g,'#');
+  let st=ROLL.get(el);
+  if(!st||st.shape!==shape){
+    el.textContent='';
+    // the strips hold every digit 0-9, so hide them and leave the real value for AT
+    const sr=document.createElement('span');sr.className='sr';
+    const wrap=document.createElement('span');wrap.className='roll';wrap.setAttribute('aria-hidden','true');
+    const cols=[];let decimals=0,seenDot=false;
+    for(const ch of shape){if(ch==='.')seenDot=true;else if(ch==='#'&&seenDot)decimals++}
+    for(const ch of shape){
+      if(ch!=='#'){const s=document.createElement('span');s.textContent=ch;wrap.append(s);continue}
+      const d=document.createElement('span');d.className='d';
+      const u=document.createElement('u');
+      for(let i=0;i<=10;i++){const g=document.createElement('i');g.textContent=String(i%10);u.append(g)}
+      d.append(u);wrap.append(d);cols.push(u);
+    }
+    el.append(sr,wrap);st={shape,cols,decimals,sr,txt:''};ROLL.set(el,st);
+  }
+  if(st.txt!==txt){st.txt=txt;st.sr.textContent=txt}
+  const D=st.cols.length;
+  st.cols.forEach((u,j)=>{
+    const place=Math.pow(10,(D-1-j)-st.decimals);
+    const off=(Math.max(0,v)/place)%10;
+    u.style.transform=`translateY(${-off}em)`;
+  });
+}
+
 const S={on:false,watch:null,start:0,moving:0,stopped:0,dist:0,spd:0,ema:0,max:0,
   last:null,state:'idle',belowSince:0,stopStart:0,preSpd:0,preAvg:0,preDist:0,wake:null,stops:[],end:0,
   route:null,prog:0,gap:0,lastFix:null};
@@ -325,10 +406,11 @@ function detect(t){
 function sdTxt(){const st=S.state;return st==='moving'||st==='idle'?'—':fmtT(Date.now()/1000-S.stopStart)}
 function fast(){
   const now=Date.now()/1000,ma=mavg(),cur=S.on&&S.state==='moving'?S.spd:0;
-  setV('d1',fu(cur/60));setV('d30',fu(cur/2));setV('d60',fu(cur));
-  setV('a1',fu(ma/60));setV('a30',fu(ma/2));setV('a60',fu(ma));
-  const live=S.dist/1000+(S.on&&S.state==='moving'&&S.lastFix?S.spd/3600*Math.min(5,now-S.lastFix.t):0);
-  setV('odo',fu(live)+' '+UNIT);
+  // targets only — the spring loop owns what actually reaches the DOM
+  setN('spd',cur);
+  setN('d1',cur/60);setN('d30',cur/2);setN('d60',cur);
+  setN('a1',ma/60);setN('a30',ma/2);setN('a60',ma);
+  setN('odo',S.dist/1000+(S.on&&S.state==='moving'&&S.lastFix?S.spd/3600*Math.min(5,now-S.lastFix.t):0));
   setV('clock',new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}));
   setV('date',new Date().toLocaleDateString([],{weekday:'short',day:'numeric',month:'short'}));
   document.querySelectorAll('.ul').forEach(e=>e.textContent=UNIT);
@@ -339,7 +421,6 @@ function render(){
   document.body.className=st;
   $('stText').textContent={moving:'Moving',brief:'Brief stop',stopped:'Stopped'}[st]||'Waiting for GPS';
   const cur=st==='moving'?S.spd:0,ma=mavg(),ta=tavg();
-  setV('spd',Math.round(cur));
   setV('mavg',ma?ma.toFixed(0):'—');setV('tavg',ta?ta.toFixed(0):'—');setV('max',S.max?S.max.toFixed(0):'—');
   fast();
   const rem=remainingKm();setV('rem',rem.toFixed(1)+' km');
@@ -385,7 +466,7 @@ function reset(){
   $('map').classList.add('hide');$('routes').innerHTML='';$('places').innerHTML='';$('q').value='';
   $('target').disabled=false;$('target').value=100;$('tgtLabel').textContent='Distance to cover (km)';$('routeNote').textContent='No route set. Remaining distance will use the manual target below.';
   // .v cells and #odo are live-computed by fast() every 100 ms — blanking them here only flickers
-  document.querySelectorAll('.row span:last-child:not(#odo),.speed .sub b').forEach(e=>e.textContent='—');$('spd').textContent='0';$('stText').textContent='Not started';
+  document.querySelectorAll('.row span:last-child:not(#odo),.speed .sub b').forEach(e=>e.textContent='—');snapN();$('stText').textContent='Not started';
   $('briefBox').classList.add('hide');$('stopBox').classList.add('hide');$('sumBox').classList.add('hide');msg('');
 }
 function summary(){
@@ -434,9 +515,10 @@ function enterSB(forced){
   $('sb').classList.add('on');$('sbExit').classList.remove('hide');
   if(!$('sb').classList.contains('rot'))document.documentElement.requestFullscreen?.().catch(()=>{});
   buildPane($('paneL'),$('dotsL'),0);buildPane($('paneR'),$('dotsR'),4);
+  mountVF($('sb'),1.15,.72);
   fast();render();
 }
-function exitSB(){$('sb').classList.remove('on','rot');$('sbExit').classList.add('hide');document.exitFullscreen?.().catch(()=>{})}
+function exitSB(){$('sb').classList.remove('on','rot');$('sbExit').classList.add('hide');document.exitFullscreen?.().catch(()=>{});mountVF($('speedBox'),.85,.62)}
 $('sbBtn').onclick=()=>enterSB(true);
 matchMedia('(orientation: landscape)').addEventListener('change',e=>{
   const on=$('sb').classList.contains('on');
@@ -445,6 +527,100 @@ matchMedia('(orientation: landscape)').addEventListener('change',e=>{
   else if(!e.matches&&on&&!$('sb').classList.contains('rot'))exitSB();
 });$('sbExit').onclick=exitSB;
 let lastTap=0;$('sb').addEventListener('click',()=>{const n=Date.now();if(n-lastTap<350)exitSB();lastTap=n});
+// ---- velocity field ----
+// One WebGL context, moved between the page hero and the standby display. Streaks
+// carry real speed: rushing at 110, drifting at a brief stop, embers when stopped.
+const VS=`attribute vec2 p;void main(){gl_Position=vec4(p,0.,1.);}`;
+const FS=`precision mediump float;
+uniform vec2 uRes;uniform float uT,uSpeed,uAmp,uVign;uniform vec3 uTint;
+float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
+void main(){
+  vec2 uv=gl_FragCoord.xy/uRes;
+  float sp=clamp(uSpeed/120.,0.,1.);
+  vec3 col=vec3(0.);
+  // four parallax layers; the near ones run longer, brighter and faster
+  for(int i=0;i<4;i++){
+    float fi=float(i);
+    float depth=.4+fi*.27;
+    float lanes=13.+fi*12.;
+    float y=uv.y*lanes;
+    float lane=floor(y);
+    float fy=fract(y)-.5;
+    // per-lane phase, or every lane starts its cells at the same x and the field grids up
+    float x=uv.x*(1.1+fi*.6)-uT*(.06+sp*2.2)*depth+hash(vec2(lane,fi*13.))*7.;
+    float cell=floor(x);
+    float h=hash(vec2(cell,lane+fi*37.));
+    if(h<.5)continue;
+    // at a standstill these collapse to embers; at speed they stretch into streaks,
+    // but never to a full cell — a continuous line stops reading as motion
+    float len=mix(.08,.60,sp)*(.45+h);
+    float head=smoothstep(len,0.,fract(x));
+    float body=exp(-abs(fy)*(15.+fi*8.));
+    col+=uTint*head*body*(.45+.55*h)*depth;
+  }
+  // hold the middle back so the numerals stay the brightest thing on screen
+  float vign=1.-uVign*exp(-pow(length((uv-.5)*vec2(1.,.7))*2.2,2.));
+  col*=vign*uAmp;
+  gl_FragColor=vec4(col,clamp(max(col.r,max(col.g,col.b))*1.9,0.,1.));
+}`;
+let gl,vfProg,vfU={},vfCanvas,vfAmp=.85,vfVign=.5;
+function initVF(){
+  vfCanvas=document.createElement('canvas');vfCanvas.id='vf';vfCanvas.setAttribute('aria-hidden','true');
+  gl=vfCanvas.getContext('webgl',{alpha:true,antialias:false,depth:false,stencil:false,powerPreference:'low-power'});
+  if(!gl)return false;
+  const sh=(t,src)=>{const s=gl.createShader(t);gl.shaderSource(s,src);gl.compileShader(s);
+    if(!gl.getShaderParameter(s,gl.COMPILE_STATUS))throw new Error(gl.getShaderInfoLog(s));return s};
+  try{
+    vfProg=gl.createProgram();
+    gl.attachShader(vfProg,sh(gl.VERTEX_SHADER,VS));gl.attachShader(vfProg,sh(gl.FRAGMENT_SHADER,FS));
+    gl.linkProgram(vfProg);
+    if(!gl.getProgramParameter(vfProg,gl.LINK_STATUS))throw new Error(gl.getProgramInfoLog(vfProg));
+  }catch{gl=null;return false}
+  gl.useProgram(vfProg);
+  const buf=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,buf);
+  gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,3,-1,-1,3]),gl.STATIC_DRAW);
+  const loc=gl.getAttribLocation(vfProg,'p');gl.enableVertexAttribArray(loc);gl.vertexAttribPointer(loc,2,gl.FLOAT,false,0,0);
+  ['uRes','uT','uSpeed','uAmp','uVign','uTint'].forEach(n=>vfU[n]=gl.getUniformLocation(vfProg,n));
+  gl.clearColor(0,0,0,0);gl.enable(gl.BLEND);gl.blendFunc(gl.SRC_ALPHA,gl.ONE);
+  vfCanvas.addEventListener('webglcontextlost',e=>{e.preventDefault();gl=null});
+  return true;
+}
+function mountVF(host,amp,vign){if(!vfCanvas||!host)return;vfAmp=amp;vfVign=vign;host.appendChild(vfCanvas);sizeVF()}
+function sizeVF(){
+  if(!gl||!vfCanvas.parentNode)return;
+  // offsetWidth, not getBoundingClientRect: standby's rot branch is rotated 90deg
+  // and the rect would come back with the axes swapped
+  const host=vfCanvas.parentNode,dpr=Math.min(2,devicePixelRatio||1);
+  const w=Math.max(1,Math.round(host.offsetWidth*dpr)),h=Math.max(1,Math.round(host.offsetHeight*dpr));
+  if(vfCanvas.width!==w||vfCanvas.height!==h){vfCanvas.width=w;vfCanvas.height=h;gl.viewport(0,0,w,h)}
+}
+const TINT={moving:[.42,.62,1],idle:[.42,.62,1],brief:[1,.70,.25],stopped:[1,.48,.35]};
+function drawVF(t){
+  if(!gl||!vfCanvas.parentNode)return;
+  sizeVF();
+  const c=TINT[S.state]||TINT.idle,spd=NUM.spd?NUM.spd.v:0;
+  gl.uniform2f(vfU.uRes,vfCanvas.width,vfCanvas.height);
+  gl.uniform1f(vfU.uT,REDUCED.matches?0:t);
+  gl.uniform1f(vfU.uSpeed,S.on?spd:0);
+  gl.uniform1f(vfU.uAmp,vfAmp);gl.uniform1f(vfU.uVign,vfVign);
+  gl.uniform3f(vfU.uTint,c[0],c[1],c[2]);
+  gl.clear(gl.COLOR_BUFFER_BIT);
+  gl.drawArrays(gl.TRIANGLES,0,3);
+}
+
+let lastFrame=0,lit=-1;
+function frame(now){
+  requestAnimationFrame(frame);
+  const dt=Math.min(.05,(now-lastFrame)/1000)||.016;lastFrame=now;
+  springN(dt);paintN();
+  const l=Math.min(1,(NUM.spd?NUM.spd.v:0)/110);
+  if(Math.abs(l-lit)>.01){lit=l;document.documentElement.style.setProperty('--lit',l.toFixed(2))}
+  drawVF(now/1000);
+}
+if(initVF())mountVF($('speedBox'),.85,.62);
+requestAnimationFrame(frame);
+addEventListener('resize',sizeVF);
+
 $('qBtn').onclick=geocode;$('q').addEventListener('keydown',e=>{if(e.key==='Enter')geocode()});
 document.addEventListener('visibilitychange',async()=>{if(!document.hidden&&S.on){S.last=null;if(!S.wake){try{S.wake=await navigator.wakeLock?.request('screen')}catch{}}}});
 setInterval(render,1000);
