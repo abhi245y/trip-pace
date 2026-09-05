@@ -72,6 +72,10 @@ speed and moving average, in km, m or cm.
 - Product name: **Trip pace**.
 - The user has made Apple's StandBy mode a binding reference for the standby
   display's look and level of finish. Recorded as given, not expanded.
+- The user rejected the main UI's typeface in the Deck Log design (Bodoni Moda,
+  a high-contrast didone serif). Recorded as given: no didone display serif on
+  the main in-hand page. The rejection was of that face on that surface, and is
+  not stated to extend further.
 
 ## Evidence on Hand
 
