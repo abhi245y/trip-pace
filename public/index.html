@@ -6,109 +6,234 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="theme-color" content="#101828">
-<link rel="manifest" href='data:application/manifest+json,{"name":"Trip pace","short_name":"Trip pace","display":"standalone","background_color":"%23101828","theme_color":"%23101828","start_url":"."}'>
+<meta name="theme-color" content="#0b1a24">
+<link rel="manifest" href='data:application/manifest+json,{"name":"Trip pace","short_name":"Trip pace","display":"standalone","background_color":"%230b1a24","theme_color":"%230b1a24","start_url":"."}'>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..700&family=Bodoni+Moda:opsz,wght@6..96,400..700&display=swap">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
 <title>Trip pace</title>
 <style>
-:root{--bg:#101828;--panel:#182238;--line:#26334f;--ink:#eef2fb;--dim:#8a97b6;--amber:#ffb340;--ok:#5fd39a;--warn:#ff7a59}
+:root{
+  --ground:#0b1a24;      /* night watch */
+  --band:#0e212f;        /* ruled band ground */
+  --ink:#f4ede0;         /* log paper, used as the ink */
+  --ink-2:#7d9aa8;       /* sea grey */
+  --rule:#1d3a4a;
+  --rule-lit:#2f5b70;
+  --brass:#c8500f;       /* rules, fills, non-text */
+  --brass-lit:#e0821f;   /* brass where text must clear 4.5:1 */
+  --oxide:#e0654a;       /* stopped */
+  --verdigris:#6f9e8f;   /* under way */
+}
 *{box-sizing:border-box;margin:0;padding:0}
-html,body{background:var(--bg);color:var(--ink);font-family:-apple-system,"SF Pro Display",Inter,system-ui,sans-serif;-webkit-font-smoothing:antialiased}
-html{scrollbar-color:var(--line) var(--bg)}
-::selection{background:var(--amber);color:#1a1200}
-body{padding:max(12px,env(safe-area-inset-top)) 16px max(24px,env(safe-area-inset-bottom));max-width:520px;margin:0 auto}
-button{font:inherit;color:inherit;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 16px;font-weight:600;cursor:pointer}
-button.primary{background:var(--amber);color:#1a1200;border-color:var(--amber)}
-button.sm{padding:8px 12px;font-size:14px;border-radius:10px}
-button:focus-visible,input:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
-button:disabled{opacity:.55;cursor:default}
-input{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:17px;font-variant-numeric:tabular-nums;caret-color:var(--amber)}
-input::placeholder{color:var(--dim);opacity:1}
-input:disabled{color:var(--dim);background:transparent;border-style:dashed}
-input.num{width:110px;font-size:20px}
-.top{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:6px}
-.status{font-size:14px;color:var(--dim);display:flex;align-items:center;gap:8px}
-.dot{width:9px;height:9px;border-radius:50%;background:var(--dim);transition:background-color .45s ease}
-.moving .dot{background:var(--ok)} .brief .dot{background:var(--amber)} .stopped .dot{background:var(--warn)}
-/* the dot's beat rate is the state: unhurried moving, urgent stopped */
+html,body{background:var(--ground);color:var(--ink);
+  font-family:Archivo,"Archivo",-apple-system,system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+html{scrollbar-color:var(--rule) var(--ground)}
+::selection{background:var(--brass);color:#fff5e8}
+body{max-width:560px;margin:0 auto;
+  padding:max(10px,env(safe-area-inset-top)) 18px max(28px,env(safe-area-inset-bottom))}
+
+/* ---- ledger primitives ---- */
+/* rules carry the structure; there are no cards and no rounded panels */
+.lbl{font-size:11px;font-weight:600;font-stretch:75%;letter-spacing:.2em;
+  text-transform:uppercase;color:var(--ink-2);margin-top:4px}
+.num{font-family:"Bodoni Moda",Didot,"Times New Roman",serif;font-variant-numeric:tabular-nums;
+  font-variation-settings:'opsz' 16;
+  font-weight:500;letter-spacing:.01em}
+.band{border-top:1px solid var(--rule);padding:14px 0 16px;position:relative}
+.band>h2{margin-bottom:12px}
+h2{font-size:11px;font-weight:600;font-stretch:75%;letter-spacing:.2em;
+  text-transform:uppercase;color:var(--ink-2);margin-bottom:12px}
+
+/* ---- masthead ---- */
+.top{display:flex;justify-content:space-between;align-items:baseline;gap:8px;
+  padding:2px 0 10px;border-bottom:2px solid var(--rule-lit)}
+.status{font-size:11px;font-weight:600;font-stretch:75%;letter-spacing:.2em;
+  text-transform:uppercase;color:var(--ink-2);display:flex;align-items:center;gap:9px}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--ink-2);flex:none;
+  transition:background-color .45s ease}
+.moving .dot{background:var(--verdigris)}
+.brief .dot{background:var(--brass-lit)}
+.stopped .dot{background:var(--oxide)}
 @media(prefers-reduced-motion:no-preference){
   .moving .dot{animation:beat 2.6s cubic-bezier(.2,.7,.3,1) infinite}
   .brief .dot{animation:beat 1.3s cubic-bezier(.2,.7,.3,1) infinite}
   .stopped .dot{animation:beat .9s cubic-bezier(.2,.7,.3,1) infinite}
 }
-@keyframes beat{0%{box-shadow:0 0 0 0 rgba(255,255,255,.4)}70%,100%{box-shadow:0 0 0 10px rgba(255,255,255,0)}}
-.speed{text-align:center;padding:18px 0 6px;position:relative}
+@keyframes beat{0%{box-shadow:0 0 0 0 rgba(244,237,224,.42)}70%,100%{box-shadow:0 0 0 9px rgba(244,237,224,0)}}
+
+/* ---- the current watch ---- */
+.speed{position:relative;text-align:center;padding:26px 0 18px;
+  border-bottom:1px solid var(--rule)}
 .speed>div{position:relative;z-index:1}
-.speed .n{font-size:118px;line-height:1;font-weight:200;letter-spacing:-.04em;font-variant-numeric:tabular-nums}
-.speed .u{font-size:15px;color:var(--dim);margin-top:2px}
-.speed .sub{font-size:14px;color:var(--dim);margin-top:10px}
-.speed .sub b{color:var(--ink);font-weight:500}
-section{background:var(--panel);border-radius:16px;padding:14px 16px;margin-top:12px}
-h2{font-size:13px;font-weight:500;color:var(--dim);margin-bottom:10px}
-.row{display:flex;justify-content:space-between;align-items:baseline;padding:6px 0;border-top:1px solid var(--line);font-size:15px;gap:10px}
+/* browser auto-opsz resolves near 96 at this size, the thinnest cut in the loaded range,
+   and Bodoni's horizontal hairlines vanish there: the 4 loses its crossbar. Pin a text
+   optical size and carry the weight. */
+.speed .n{font-family:"Bodoni Moda",Didot,"Times New Roman",serif;font-variant-numeric:tabular-nums;
+  font-variation-settings:'opsz' 22;font-size:clamp(104px,30vw,138px);line-height:.9;
+  font-weight:650;letter-spacing:-.005em;
+  text-shadow:0 0 16px var(--ground),0 0 calc(var(--lit,0)*34px) rgba(224,130,31,calc(var(--lit,0)*.4))}
+.speed .u{font-size:11px;font-weight:600;font-stretch:75%;letter-spacing:.24em;
+  text-transform:uppercase;color:var(--ink-2);margin-top:10px;
+  text-shadow:0 0 10px var(--ground)}
+.speed .sub{display:flex;justify-content:center;gap:0;margin-top:16px;
+  font-size:11px;font-weight:600;font-stretch:75%;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--ink-2);text-shadow:0 0 10px var(--ground)}
+.speed .sub span{padding:0 14px;border-left:1px solid var(--rule)}
+.speed .sub span:first-child{border-left:0}
+.speed .sub b{display:block;margin-top:5px;font-size:20px;font-weight:600;letter-spacing:0;
+  font-variation-settings:'opsz' 16;
+  font-family:"Bodoni Moda",Didot,serif;font-variant-numeric:tabular-nums;color:var(--ink)}
+
+/* ---- ruled entries ---- */
+.row{display:flex;justify-content:space-between;align-items:baseline;gap:12px;
+  padding:9px 0;border-top:1px solid var(--rule);font-size:14px;color:var(--ink-2)}
 .row:first-of-type{border-top:0}
-.row span:last-child{font-variant-numeric:tabular-nums;font-size:19px;font-weight:500;text-align:right}
-.grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;text-align:center}
-.grid div{background:var(--bg);border-radius:12px;padding:10px 4px}
-.grid .v{font-size:22px;font-weight:500;font-variant-numeric:tabular-nums}
-.grid .l{font-size:12px;color:var(--dim);margin-top:2px}
-.target{display:flex;align-items:center;gap:10px;justify-content:space-between;margin-bottom:6px}
-.stop{border:1px solid var(--warn)}
-.stop .big{font-size:40px;font-weight:300;font-variant-numeric:tabular-nums;line-height:1.1}
-.stop p,.note{font-size:14px;color:var(--dim);margin-top:4px}
-.stop p b{color:var(--ink);font-weight:500}
-.briefline{font-size:14px;color:var(--amber);text-align:center;padding:4px 0 0}
-.actions{display:flex;gap:10px;margin-top:14px}
-.actions button{flex:1}
-.msg{font-size:13px;color:var(--warn);margin-top:8px;text-align:center;min-height:1em}
-.msg.ok{color:var(--ok)}
-.msg.info{color:var(--dim)}
+.row span:last-child{font-family:"Bodoni Moda",Didot,serif;font-variant-numeric:tabular-nums;
+  font-variation-settings:'opsz' 16;
+  font-size:21px;font-weight:600;color:var(--ink);text-align:right;letter-spacing:.01em}
+/* a hairline-dashed rule marks reckoned rather than observed distance */
+.row.reckoned{border-top-style:dashed;border-top-color:var(--rule-lit)}
+.row.reckoned span:last-child{color:var(--ink-2)}
+
+.grid{display:grid;grid-template-columns:1fr 1fr 1fr}
+.grid div{padding:12px 8px;text-align:center;border-left:1px solid var(--rule)}
+.grid div:first-child{border-left:0;text-align:left}
+.grid div:last-child{text-align:right}
+.grid .v{font-family:"Bodoni Moda",Didot,serif;font-variant-numeric:tabular-nums;
+  font-variation-settings:'opsz' 16;
+  font-size:26px;font-weight:600;letter-spacing:.01em}
+.grid .l{font-size:11px;font-weight:600;font-stretch:75%;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--ink-2);margin-top:6px}
+.subhead{border-top:1px solid var(--rule);padding-top:12px;margin-top:4px}
+
+/* ---- controls, engraved ---- */
+button{font:inherit;font-size:12px;font-weight:600;font-stretch:75%;letter-spacing:.18em;
+  text-transform:uppercase;color:var(--ink);background:transparent;
+  border:1px solid var(--rule-lit);border-radius:0;padding:13px 16px;cursor:pointer;
+  transition:border-color .2s ease,color .2s ease,background-color .2s ease}
+button:hover{border-color:var(--brass);color:var(--brass-lit)}
+button.primary{background:var(--brass);border-color:var(--brass);color:#ffffff}
+button.primary:hover{background:var(--brass-lit);border-color:var(--brass-lit);color:#2a1200}
+button.sm{padding:9px 12px;font-size:11px;letter-spacing:.14em}
+button:focus-visible,input:focus-visible{outline:2px solid var(--brass-lit);outline-offset:2px}
+button:disabled{opacity:.5;cursor:default}
+input{font:inherit;color:var(--ink);background:transparent;border:0;
+  border-bottom:1px solid var(--rule-lit);border-radius:0;padding:9px 2px;font-size:16px;
+  font-variant-numeric:tabular-nums;caret-color:var(--brass-lit)}
+input::placeholder{color:var(--ink-2);opacity:1}
+input:disabled{color:var(--ink-2);border-bottom-style:dashed}
+input.num{width:104px;font-size:21px;text-align:right;
+  font-family:"Bodoni Moda",Didot,serif}
+.actions{display:flex;gap:0;margin-top:20px;border-top:1px solid var(--rule-lit);padding-top:16px}
+.actions button{flex:1;border:0;position:relative}
+/* engraved corner brackets: the control band is the one place the page was falling
+   back to a plain rectangle */
+.actions button::before,.actions button::after{content:"";position:absolute;width:7px;height:7px;
+  border:1px solid var(--brass)}
+.actions button::before{top:5px;left:5px;border-right:0;border-bottom:0}
+.actions button::after{bottom:5px;right:5px;border-left:0;border-top:0}
+.actions button.primary::before,.actions button.primary::after{border-color:rgba(255,255,255,.6)}
+.actions button:hover::before,.actions button:hover::after{border-color:var(--brass-lit)}
+
+.msg{font-size:12px;color:var(--oxide);margin-top:12px;min-height:1.2em;
+  letter-spacing:.04em;text-align:center}
+.msg.ok{color:var(--verdigris)}
+.msg.info{color:var(--ink-2)}
 .hide{display:none}
-.sum{border:1px solid var(--ok)} .sum .grid{grid-template-columns:1fr 1fr} .sum .v{font-size:20px}
-.search{display:flex;gap:8px}.search input{flex:1;min-width:0}
-.list button{display:block;width:100%;text-align:left;margin-top:6px;font-weight:500;background:var(--bg)}
-.list button.sel{border-color:var(--amber)}
-.list small{display:block;color:var(--dim);font-weight:400;font-size:13px}
-#map{height:200px;border-radius:12px;margin-top:10px;background:#0b1220}
+
+/* ---- a stop is a log entry, doubled-ruled, not an alert ---- */
+.stop{border-top:1px solid var(--brass);box-shadow:inset 0 3px 0 -2px var(--brass)}
+.stop h2{color:var(--brass-lit)}
+.stop .big{font-family:"Bodoni Moda",Didot,serif;font-variant-numeric:tabular-nums;
+  font-size:52px;font-weight:500;line-height:1;color:var(--oxide)}
+.stop p,.note{font-size:13px;color:var(--ink-2);margin-top:7px;line-height:1.5}
+.stop p b{color:var(--ink);font-weight:500;font-family:"Bodoni Moda",Didot,serif;
+  font-variant-numeric:tabular-nums;font-size:15px}
+.briefline{font-size:12px;font-weight:600;font-stretch:75%;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--brass-lit);text-align:center}
+.sum{border-top:1px solid var(--verdigris);box-shadow:inset 0 3px 0 -2px var(--verdigris)}
+.sum .grid{grid-template-columns:1fr 1fr}
+.sum .grid div{border-top:1px solid var(--rule)}
+.sum .grid div:nth-child(-n+2){border-top:0}
+.sum .v{font-size:21px}
+
+/* ---- chart ---- */
+.search{display:flex;gap:12px;align-items:flex-end}
+.search input{flex:1;min-width:0}
+.list button{display:block;width:100%;text-align:left;margin-top:8px;
+  text-transform:none;letter-spacing:.01em;font-size:14px;font-stretch:100%;font-weight:500}
+.list button.sel{border-color:var(--brass);color:var(--brass-lit)}
+.list small{display:block;margin-top:3px;color:var(--ink-2);font-weight:400;font-size:12px;
+  letter-spacing:0}
+#map{height:190px;margin-top:14px;background:#07131b;border:1px solid var(--rule-lit);
+  filter:saturate(.4) brightness(.62) contrast(1.1)}
 .leaflet-container{font:inherit}
-.units{display:flex;gap:6px}.units button{padding:6px 10px;font-size:13px;border-radius:8px}.units button.sel{border-color:var(--amber);color:var(--amber)}
-.h2row{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}.h2row h2{margin:0}
-/* ---- standby ---- */
-/* above Leaflet's panes and controls (400–800), which sit in the root stacking context */
-#sb{position:fixed;inset:0;background:#000;z-index:900;display:none;color:#e8e8e8}
-#sb.on{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:100%;height:100dvh;width:100dvw;overflow:hidden}
-#sb.on.rot{width:100dvh;height:100dvw;transform:rotate(90deg) translateY(-100%);transform-origin:top left}
-#sb .pw{position:relative;height:100%;min-height:0}
-.pane{height:100%;width:100%;overflow-y:scroll;scroll-snap-type:y mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none;overscroll-behavior:contain}
-.pane::-webkit-scrollbar{display:none}
-.w{height:100%;scroll-snap-align:start;scroll-snap-stop:always;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:16px;font-variant-numeric:tabular-nums}
-.w .big{font-size:clamp(64px,22vmin,170px);line-height:.95;font-weight:200;letter-spacing:-.04em}
-.w .mid{font-size:clamp(28px,8vmin,64px);font-weight:300;line-height:1.1}
-.w .lab{font-size:clamp(13px,2.4vmin,18px);color:#8a8a8a;margin-top:8px}
-.w .ok{color:#5fd39a}.w .amb{color:#ffb340}.w .wrn{color:#ff7a59}
-.w .kv{display:grid;grid-template-columns:auto auto;gap:6px 18px;font-size:clamp(15px,3vmin,24px);text-align:left}
-.w .kv span:nth-child(odd){color:#8a8a8a}.w .kv span:nth-child(even){font-weight:500}
-.dots{position:absolute;right:6px;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:6px}
-.dots i{width:5px;height:5px;border-radius:50%;background:#666}.dots i.cur{background:#e8e8e8}
-#sbExit{position:fixed;top:max(8px,env(safe-area-inset-top));right:12px;background:#111;border-color:#222;color:#888;z-index:901}
-@media(prefers-reduced-motion:no-preference){.pane{scroll-behavior:smooth}}
+.units{display:flex}
+.units button{padding:7px 11px;font-size:11px;letter-spacing:.14em;border-left-width:0}
+.units button:first-child{border-left-width:1px}
+.units button.sel{border-color:var(--brass);color:var(--brass-lit)}
+.h2row{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.h2row h2{margin:0}
+.target{display:flex;align-items:baseline;gap:12px;justify-content:space-between;margin-bottom:6px}
+.target h2{margin:0}
+
 /* ---- instrument ---- */
 /* mechanical odometer: each digit is a 0-9-0 strip offset by its own place value,
    so the ones column rolls continuously and the tens only turn on carry */
-.roll{display:inline-flex;line-height:1;font-variant-numeric:tabular-nums}
+.roll{display:inline-flex;line-height:1;font-variant-numeric:tabular-nums;white-space:pre}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
-.roll .d{height:1em;width:1ch;overflow:hidden}
-.roll .d u{display:block;text-decoration:none}
+/* no width: the strip holds all ten digits, so it sizes itself to the widest one.
+   Bodoni Moda ships no tabular figures, and a 1ch slot lets an 8 overlap its neighbour. */
+.roll .d{height:1em;overflow:hidden;text-align:center}
+.roll .d u{display:block;text-decoration:none;transition:transform .45s cubic-bezier(.2,.8,.2,1)}
 .roll .d i{display:block;height:1em;font-style:normal}
 #vf{position:absolute;inset:0;width:100%;height:100%;z-index:0;pointer-events:none}
 #sb>#vf{z-index:0}
 #sb .pw{z-index:1}
-/* the field is additive, so a streak head passing under text would otherwise take
-   the label from 6:1 down to 1.3:1. A black halo holds each glyph's own ground. */
-.w .lab,.w .kv,.w .mid{text-shadow:0 0 10px #000,0 0 4px #000}
-.w .big{text-shadow:0 0 14px #000,0 0 calc(var(--lit,0)*38px) rgba(190,220,255,calc(var(--lit,0)*.5))}
-.speed .u,.speed .sub{text-shadow:0 0 10px var(--bg),0 0 4px var(--bg)}
-.speed .n{text-shadow:0 0 14px var(--bg),0 0 calc(var(--lit,0)*30px) rgba(255,179,64,calc(var(--lit,0)*.42))}
+
+/* ---- standby: the chronometer face ---- */
+#sb{position:fixed;inset:0;background:#000;z-index:900;display:none;color:#f4ede0}
+#sb.on{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:100%;
+  height:100dvh;width:100dvw;overflow:hidden}
+#sb.on.rot{width:100dvh;height:100dvw;transform:rotate(90deg) translateY(-100%);
+  transform-origin:top left}
+#sb .pw{position:relative;height:100%;min-height:0;container-type:size}
+#sb .pw+.pw::before{content:"";position:absolute;left:0;top:12%;bottom:12%;width:1px;
+  background:linear-gradient(180deg,transparent,#1c1c1c 22%,#1c1c1c 78%,transparent);z-index:2}
+.pane{height:100%;width:100%;overflow-y:scroll;scroll-snap-type:y mandatory;
+  -webkit-overflow-scrolling:touch;scrollbar-width:none;overscroll-behavior:contain}
+.pane::-webkit-scrollbar{display:none}
+.w{height:100%;scroll-snap-align:start;scroll-snap-stop:always;display:flex;
+  flex-direction:column;justify-content:center;align-items:center;text-align:center;
+  padding:3cqb 4cqi;font-variant-numeric:tabular-nums}
+/* Bodoni carries the in-hand page, but rotated 90deg at a glance its 1 and 4 read as
+   slabs. The mounted display is the engraved plate, not the printed page: Archivo, wide
+   and heavy, stays legible in the fraction of a second this surface actually gets. */
+.w .big{font-family:Archivo,system-ui,sans-serif;font-size:clamp(72px,min(56cqb,42cqi),220px);line-height:.98;
+  font-weight:600;font-stretch:110%;letter-spacing:-.015em;
+  text-shadow:0 0 18px #000,0 0 calc(var(--lit,0)*44px) rgba(224,168,110,calc(var(--lit,0)*.42))}
+.w .mid{font-family:Archivo,system-ui,sans-serif;font-size:clamp(34px,min(22cqb,19cqi),96px);font-weight:600;
+  font-stretch:110%;letter-spacing:-.01em;line-height:1.06;text-shadow:0 0 12px #000}
+.w .lab{font-size:clamp(13px,4cqi,22px);font-weight:600;font-stretch:75%;letter-spacing:.22em;
+  text-transform:uppercase;color:#8d9aa2;margin-top:2.6cqb;text-shadow:0 0 10px #000}
+.w .ok{color:#8fbfa8}.w .amb{color:#e0a86e}.w .wrn{color:#e0654a}
+.w .kv{display:grid;grid-template-columns:auto auto;gap:0 26px;text-align:left;
+  font-size:clamp(16px,5cqi,30px)}
+.w .kv span{padding:7px 0;border-top:1px solid #1c1c1c;text-shadow:0 0 10px #000}
+.w .kv span:nth-child(-n+2){border-top:0}
+.w .kv span:nth-child(odd){color:#8d9aa2;font-size:.62em;font-weight:600;font-stretch:75%;
+  letter-spacing:.18em;text-transform:uppercase;align-self:center}
+.w .kv span:nth-child(even){font-family:Archivo,system-ui,sans-serif;font-weight:600;font-stretch:105%;text-align:right}
+.dots{position:absolute;right:10px;top:50%;transform:translateY(-50%);display:flex;
+  flex-direction:column;gap:9px;z-index:3}
+.dots i{width:5px;height:5px;border-radius:50%;background:#8d9aa2;transition:background-color .3s}
+.dots i.cur{background:#e8e0d2}
+#sbExit{position:fixed;top:max(10px,env(safe-area-inset-top));right:12px;background:#0a0a0a;
+  border-color:#1c1c1c;color:#8d9aa2;z-index:901}
+@media(prefers-reduced-motion:reduce){.roll .d u{transition:none}}
+@media(prefers-reduced-motion:no-preference){.pane{scroll-behavior:smooth}}
 </style>
 </head>
 <body>
@@ -119,72 +244,81 @@ h2{font-size:13px;font-weight:500;color:var(--dim);margin-bottom:10px}
 
 <div class="speed" id="speedBox">
   <div class="n" id="spd">0</div>
-  <div class="u">km/h now</div>
-  <div class="sub">moving avg <b id="mavg">—</b> · trip avg <b id="tavg">—</b> · max <b id="max">—</b></div>
+  <div class="u">km/h · present speed</div>
+  <div class="sub">
+    <span>Moving avg<b id="mavg">—</b></span>
+    <span>Trip avg<b id="tavg">—</b></span>
+    <span>Maximum<b id="max">—</b></span>
+  </div>
 </div>
 
-<section id="briefBox" class="hide"><div class="briefline" id="briefTxt"></div></section>
+<div id="briefBox" class="band hide"><div class="briefline" id="briefTxt"></div></div>
 
-<section id="stopBox" class="stop hide">
+<div id="stopBox" class="band stop hide">
   <h2>Stopped</h2>
   <div class="big" id="stopFor">0:00</div>
+  <div class="lbl">Stopped for</div>
   <p>Delay added to your arrival: <b id="stopDelay">0:00</b></p>
   <p>At <b id="preSpd">—</b> km/h you'd be <b id="lostS">0.0 km</b> further, at <b id="lostKm">—</b></p>
   <p>At moving avg <b id="preAvg">—</b> km/h you'd be <b id="lostA">0.0 km</b> further</p>
   <p>Remaining at pre-stop speed now takes <b id="etaGrow">—</b></p>
-</section>
+</div>
 
-<section id="routeBox">
+<div class="band">
+  <h2>This passage</h2>
+  <div class="row"><span>Distance run, observed</span><span id="dist">0.00 km</span></div>
+  <div class="row reckoned"><span>Live odometer, reckoned between fixes</span><span id="odo">0</span></div>
+  <div class="row"><span>Elapsed</span><span id="el">0:00</span></div>
+  <div class="row"><span>Under way</span><span id="mov">0:00</span></div>
+  <div class="row"><span>Stopped</span><span id="stp">0:00</span></div>
+  <div class="row reckoned"><span>Reckoned while suspended</span><span id="gap">0:00</span></div>
+</div>
+
+<div class="band" id="routeBox">
   <h2>Destination</h2>
-  <div class="search"><input id="q" aria-label="Destination: place name, &quot;lat, lon&quot;, or a Maps link" placeholder="Place, or paste &quot;lat, lon&quot; / Maps link" enterkeyhint="search"><button class="sm" id="qBtn">Find</button></div>
+  <div class="search">
+    <input id="q" aria-label="Destination: place name, &quot;lat, lon&quot;, or a Maps link" placeholder="Place, or paste &quot;lat, lon&quot; / Maps link" enterkeyhint="search">
+    <button class="sm" id="qBtn">Find</button>
+  </div>
   <div class="list" id="places" aria-live="polite"></div>
   <div class="list" id="routes" aria-live="polite"></div>
   <div id="map" class="hide"></div>
   <p class="note" id="routeNote">No route set. Remaining distance will use the manual target below.</p>
-</section>
+</div>
 
-<section>
-  <div class="h2row"><h2>At current speed you cover</h2>
+<div class="band">
+  <div class="h2row"><h2>At present speed you cover</h2>
     <div class="units" id="units"><button class="sm sel" data-u="km">km</button><button class="sm" data-u="m">m</button><button class="sm" data-u="cm">cm</button></div></div>
   <div class="grid">
-    <div><div class="v" id="d1">0.0</div><div class="l"><span class="ul">km</span> per min</div></div>
-    <div><div class="v" id="d30">0.0</div><div class="l"><span class="ul">km</span> per 30 min</div></div>
-    <div><div class="v" id="d60">0.0</div><div class="l"><span class="ul">km</span> per hour</div></div>
+    <div><div class="v" id="d1">0.0</div><div class="l"><span class="ul">km</span> / min</div></div>
+    <div><div class="v" id="d30">0.0</div><div class="l"><span class="ul">km</span> / 30 min</div></div>
+    <div><div class="v" id="d60">0.0</div><div class="l"><span class="ul">km</span> / hour</div></div>
   </div>
-  <h2 style="margin-top:12px">At moving average</h2>
+  <div class="subhead"><h2>At moving average</h2></div>
   <div class="grid">
-    <div><div class="v" id="a1">0.0</div><div class="l"><span class="ul">km</span> per min</div></div>
-    <div><div class="v" id="a30">0.0</div><div class="l"><span class="ul">km</span> per 30 min</div></div>
-    <div><div class="v" id="a60">0.0</div><div class="l"><span class="ul">km</span> per hour</div></div>
+    <div><div class="v" id="a1">0.0</div><div class="l"><span class="ul">km</span> / min</div></div>
+    <div><div class="v" id="a30">0.0</div><div class="l"><span class="ul">km</span> / 30 min</div></div>
+    <div><div class="v" id="a60">0.0</div><div class="l"><span class="ul">km</span> / hour</div></div>
   </div>
-</section>
+</div>
 
-<section>
+<div class="band">
   <div class="target">
-    <h2 style="margin:0" id="tgtLabel">Distance to cover (km)</h2>
+    <h2 id="tgtLabel">Distance to cover (km)</h2>
     <input class="num" id="target" aria-labelledby="tgtLabel" type="number" inputmode="decimal" min="0" step="0.5" value="100">
   </div>
   <div class="row"><span>Remaining</span><span id="rem">—</span></div>
-  <div class="row"><span>Time at current speed</span><span id="etaC">—</span></div>
+  <div class="row"><span>Time at present speed</span><span id="etaC">—</span></div>
   <div class="row"><span>Time at moving avg</span><span id="etaM">—</span></div>
   <div class="row"><span>Time at trip avg (incl. stops)</span><span id="etaT">—</span></div>
   <div class="row"><span>Arrive around</span><span id="arr">—</span></div>
-</section>
+</div>
 
-<section>
-  <h2>This trip</h2>
-  <div class="row"><span>Travelled</span><span id="dist">0.00 km</span></div>
-  <div class="row"><span>Live odometer</span><span id="odo">0</span></div>
-  <div class="row"><span>Elapsed</span><span id="el">0:00</span></div>
-  <div class="row"><span>Moving</span><span id="mov">0:00</span></div>
-  <div class="row"><span>Stopped</span><span id="stp">0:00</span></div>
-  <div class="row"><span>Reconstructed while suspended</span><span id="gap">0:00</span></div>
-</section>
 
-<section id="sumBox" class="sum hide">
-  <h2>Trip summary</h2>
+<div id="sumBox" class="band sum hide">
+  <h2>Passage summary</h2>
   <div class="grid" id="sumGrid"></div>
-</section>
+</div>
 
 <div class="actions">
   <button id="sbBtn">Standby</button>
@@ -249,17 +383,26 @@ function rollTo(el,v){
       if(ch!=='#'){const s=document.createElement('span');s.textContent=ch;wrap.append(s);continue}
       const d=document.createElement('span');d.className='d';
       const u=document.createElement('u');
-      for(let i=0;i<=10;i++){const g=document.createElement('i');g.textContent=String(i%10);u.append(g)}
+      // two laps plus one: a drum can roll forward past 9 and be reset a lap back silently
+      for(let i=0;i<=20;i++){const g=document.createElement('i');g.textContent=String(i%10);u.append(g)}
       d.append(u);wrap.append(d);cols.push(u);
     }
-    el.append(sr,wrap);st={shape,cols,decimals,sr,txt:''};ROLL.set(el,st);
+    el.append(sr,wrap);st={shape,cols,decimals,sr,txt:'',pos:cols.map(()=>0)};ROLL.set(el,st);
   }
   if(st.txt!==txt){st.txt=txt;st.sr.textContent=txt}
-  const D=st.cols.length;
+  const D=st.cols.length,val=Math.max(0,v);
   st.cols.forEach((u,j)=>{
-    const place=Math.pow(10,(D-1-j)-st.decimals);
-    const off=(Math.max(0,v)/place)%10;
-    u.style.transform=`translateY(${-off}em)`;
+    // Every drum rests on a whole digit and rolls forward to the next when the value
+    // changes. A drum parked between two digits is never legible, and this readout is
+    // read at a glance from a mount.
+    const digit=Math.floor(val/Math.pow(10,(D-1-j)-st.decimals))%10;
+    let cur=st.pos[j];
+    if(cur>=10){                       // silently drop back a lap so it can roll on
+      u.style.transition='none';cur-=10;u.style.transform=`translateY(${-cur}em)`;
+      u.getBoundingClientRect();u.style.transition='';st.pos[j]=cur;
+    }
+    const step=(digit-cur%10+10)%10;
+    if(step){st.pos[j]=cur+step;u.style.transform=`translateY(${-st.pos[j]}em)`}
   });
 }
 
@@ -386,7 +529,7 @@ function onPos(p){
   S.last={c,t};S.lastFix={lat:c.latitude,lon:c.longitude,t};
   if(S.route&&c.accuracy<=MIN_ACC_M){const s=snap({lat:c.latitude,lon:c.longitude});
     if(s.off<OFFROUTE_M){S.prog=Math.max(S.prog,s.along);$('routeNote').textContent=`On route · ${(S.prog/1000).toFixed(1)} of ${(S.route.total/1000).toFixed(1)} km`}
-    else $('routeNote').textContent=`Off route by ${Math.round(s.off)} m — remaining frozen until back on route`;}
+    else $('routeNote').textContent=`Off route by ${Math.round(s.off)} m · remaining frozen until back on route`;}
   if(map){const ll=[c.latitude,c.longitude];meMarker?meMarker.setLatLng(ll):meMarker=L.circleMarker(ll,{radius:6,color:'#5fd39a',fillOpacity:1}).addTo(map)}
   S.ema=S.ema?S.ema*(1-EMA)+v*EMA:v;
   S.spd=S.ema*3.6;if(S.spd>S.max)S.max=S.spd;
@@ -447,7 +590,7 @@ async function start(){
   if(!navigator.geolocation){msg('Geolocation not supported. Use HTTPS.');return}
   S.on=true;if(!S.start)S.start=Date.now()/1000;S.state=S.state==='idle'?'idle':S.state;S.last=null;
   $('sumBox').classList.add('hide');msg('');
-  S.watch=navigator.geolocation.watchPosition(onPos,e=>{msg('GPS error: '+e.message+(e.code===1?' — allow Location for this site (needs HTTPS).':''))},
+  S.watch=navigator.geolocation.watchPosition(onPos,e=>{msg('GPS error: '+e.message+(e.code===1?'. Allow Location for this site (needs HTTPS).':''))},
     {enableHighAccuracy:true,maximumAge:0,timeout:15000});
   try{S.wake=await navigator.wakeLock?.request('screen')}catch{}
   $('startBtn').textContent='End trip';$('startBtn').classList.remove('primary');
@@ -482,12 +625,21 @@ function summary(){
   $('sumBox').classList.remove('hide');
 }
 (function restore(){
-  const o=load();if(!o||!o.start)return;
-  KEYS.forEach(k=>{if(k in o)S[k]=o[k]});$('target').value=o.target||100;S.on=false;S.last=null;
-  if(S.route){$('target').disabled=true;$('tgtLabel').textContent='Route length (km)';showMap([S.route]);
-    $('routeNote').textContent=`Route restored · ${(S.prog/1000).toFixed(1)} of ${(S.route.total/1000).toFixed(1)} km done`}
-  if(o.end)summary();
-  else{$('stText').textContent='Unfinished trip found';$('startBtn').textContent='Resume trip';msg('Tap Resume to continue — the gap since last fix will be reconstructed.','info')}
+  // this runs at top level: an unguarded throw here kills every listener, the standby
+  // display and the field along with it, so a malformed saved trip must not escape
+  try{
+    const o=load();if(!o||!o.start)return;
+    KEYS.forEach(k=>{if(k in o)S[k]=o[k]});$('target').value=o.target||100;S.on=false;S.last=null;
+    if(S.route&&S.route.pts&&S.route.pts.length>1){
+      $('target').disabled=true;$('tgtLabel').textContent='Route length (km)';showMap([S.route]);
+      $('routeNote').textContent=`Route restored · ${(S.prog/1000).toFixed(1)} of ${(S.route.total/1000).toFixed(1)} km done`;
+    } else S.route=null;
+    if(o.end)summary();
+    else{$('stText').textContent='Unfinished trip found';$('startBtn').textContent='Resume trip';msg('Tap Resume to continue. The gap since last fix will be reconstructed.','info')}
+  }catch(e){
+    try{localStorage.removeItem('trip')}catch{}
+    msg('Saved trip could not be restored and was cleared.','info');
+  }
 })();
 $('startBtn').onclick=()=>S.on?stop():start();
 $('resetBtn').onclick=reset;
@@ -498,10 +650,10 @@ setInterval(fast,100);
 const WIDGETS=[
  ['speed',`<div class="big" data-v="spd">0</div><div class="lab">km/h · <span data-v="state">—</span></div>`],
  ['clock',`<div class="big" data-v="clock"></div><div class="lab" data-v="date"></div>`],
- ['cover',`<div class="mid" data-v="d1">0</div><div class="lab"><span class="ul">km</span> per minute at current speed</div><div class="mid" style="margin-top:18px" data-v="d60">0</div><div class="lab"><span class="ul">km</span> per hour</div>`],
+ ['cover',`<div class="mid" data-v="d1">0</div><div class="lab"><span class="ul">km</span> per minute at current speed</div><div class="mid" style="margin-top:4cqb" data-v="d60">0</div><div class="lab"><span class="ul">km</span> per hour</div>`],
  ['odo',`<div class="mid" data-v="odo">0</div><div class="lab">travelled · live odometer</div>`],
- ['eta',`<div class="mid" data-v="rem">—</div><div class="lab">remaining</div><div class="mid" style="margin-top:18px" data-v="etaM">—</div><div class="lab">at moving avg · arrive <span data-v="arr">—</span></div>`],
- ['stop',`<div class="mid wrn" data-v="stopFor2">—</div><div class="lab">stopped for</div><div class="mid amb" style="margin-top:18px" data-v="lost">0.0 km</div><div class="lab">behind pace at pre-stop speed</div>`],
+ ['eta',`<div class="mid" data-v="rem">—</div><div class="lab">remaining</div><div class="mid" style="margin-top:4cqb" data-v="etaM">—</div><div class="lab">at moving avg · arrive <span data-v="arr">—</span></div>`],
+ ['stop',`<div class="mid wrn" data-v="stopFor2">—</div><div class="lab">stopped for</div><div class="mid amb" style="margin-top:4cqb" data-v="lost">0.0 km</div><div class="lab">behind pace at pre-stop speed</div>`],
  ['stats',`<div class="kv"><span>travelled</span><span data-v="dist">—</span><span>moving avg</span><span data-v="mavg">—</span><span>trip avg</span><span data-v="tavg">—</span><span>max</span><span data-v="max">—</span><span>elapsed</span><span data-v="el">—</span><span>moving</span><span data-v="mov">—</span><span>stopped</span><span data-v="stp">—</span></div>`]];
 function buildPane(pane,dots,startIdx){
   pane.innerHTML=WIDGETS.map(w=>`<div class="w" data-w="${w[0]}">${w[1]}</div>`).join('');
@@ -515,10 +667,10 @@ function enterSB(forced){
   $('sb').classList.add('on');$('sbExit').classList.remove('hide');
   if(!$('sb').classList.contains('rot'))document.documentElement.requestFullscreen?.().catch(()=>{});
   buildPane($('paneL'),$('dotsL'),0);buildPane($('paneR'),$('dotsR'),4);
-  mountVF($('sb'),1.15,.72);
+  mountVF($('sb'),.42,.88);
   fast();render();
 }
-function exitSB(){$('sb').classList.remove('on','rot');$('sbExit').classList.add('hide');document.exitFullscreen?.().catch(()=>{});mountVF($('speedBox'),.85,.62)}
+function exitSB(){$('sb').classList.remove('on','rot');$('sbExit').classList.add('hide');document.exitFullscreen?.().catch(()=>{});mountVF($('speedBox'),.5,.8)}
 $('sbBtn').onclick=()=>enterSB(true);
 matchMedia('(orientation: landscape)').addEventListener('change',e=>{
   const on=$('sb').classList.contains('on');
@@ -538,7 +690,8 @@ void main(){
   vec2 uv=gl_FragCoord.xy/uRes;
   float sp=clamp(uSpeed/120.,0.,1.);
   vec3 col=vec3(0.);
-  // four parallax layers; the near ones run longer, brighter and faster
+  // the log's ruled paper running under the pen: four sheets at different depths,
+  // each a set of hairline rules whose ink weight and travel follow real speed
   for(int i=0;i<4;i++){
     float fi=float(i);
     float depth=.4+fi*.27;
@@ -546,16 +699,16 @@ void main(){
     float y=uv.y*lanes;
     float lane=floor(y);
     float fy=fract(y)-.5;
-    // per-lane phase, or every lane starts its cells at the same x and the field grids up
     float x=uv.x*(1.1+fi*.6)-uT*(.06+sp*2.2)*depth+hash(vec2(lane,fi*13.))*7.;
     float cell=floor(x);
     float h=hash(vec2(cell,lane+fi*37.));
     if(h<.5)continue;
-    // at a standstill these collapse to embers; at speed they stretch into streaks,
-    // but never to a full cell — a continuous line stops reading as motion
+    // standing still the pen leaves dots; at speed the rule draws out into a line,
+    // but never a full cell — a continuous rule stops reading as travel
     float len=mix(.08,.60,sp)*(.45+h);
     float head=smoothstep(len,0.,fract(x));
-    float body=exp(-abs(fy)*(15.+fi*8.));
+    // a drawn rule, not a glow: hard top and bottom edge, ink falling off along its length
+    float body=1.-smoothstep(.055,.085,abs(fy));
     col+=uTint*head*body*(.45+.55*h)*depth;
   }
   // hold the middle back so the numerals stay the brightest thing on screen
@@ -594,7 +747,8 @@ function sizeVF(){
   const w=Math.max(1,Math.round(host.offsetWidth*dpr)),h=Math.max(1,Math.round(host.offsetHeight*dpr));
   if(vfCanvas.width!==w||vfCanvas.height!==h){vfCanvas.width=w;vfCanvas.height=h;gl.viewport(0,0,w,h)}
 }
-const TINT={moving:[.42,.62,1],idle:[.42,.62,1],brief:[1,.70,.25],stopped:[1,.48,.35]};
+// log-paper ink under way, brass at a brief stop, oxide when stopped
+const TINT={moving:[.82,.78,.68],idle:[.55,.62,.66],brief:[.88,.55,.14],stopped:[.78,.28,.16]};
 function drawVF(t){
   if(!gl||!vfCanvas.parentNode)return;
   sizeVF();
@@ -617,7 +771,7 @@ function frame(now){
   if(Math.abs(l-lit)>.01){lit=l;document.documentElement.style.setProperty('--lit',l.toFixed(2))}
   drawVF(now/1000);
 }
-if(initVF())mountVF($('speedBox'),.85,.62);
+if(initVF())mountVF($('speedBox'),.5,.8);
 requestAnimationFrame(frame);
 addEventListener('resize',sizeVF);
 

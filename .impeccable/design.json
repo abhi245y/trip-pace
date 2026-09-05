@@ -1,0 +1,169 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-09-05T00:00:00Z",
+  "title": "Design System: Trip pace",
+  "extensions": {
+    "colorMeta": {
+      "ground": { "role": "neutral", "displayName": "Night Watch", "canonical": "#0b1a24", "tonalRamp": ["#04090d", "#071119", "#0b1a24", "#12293a", "#1d3a4a", "#2f5b70", "#6f92a5", "#c3d4dd"] },
+      "band": { "role": "neutral", "displayName": "Band Ground", "canonical": "#0e212f", "tonalRamp": ["#050c11", "#0a1720", "#0e212f", "#153245", "#20475f", "#33667f", "#7099b0", "#c8dae4"] },
+      "ink": { "role": "neutral", "displayName": "Log Paper", "canonical": "#f4ede0", "tonalRamp": ["#2a2317", "#453b2a", "#61553f", "#8a7c62", "#b0a289", "#d0c4ae", "#e6dccb", "#f4ede0"] },
+      "ink-2": { "role": "neutral", "displayName": "Sea Grey", "canonical": "#7d9aa8", "tonalRamp": ["#141d22", "#22333b", "#324a55", "#456371", "#5b7f8e", "#7d9aa8", "#a6bcc6", "#d3e0e6"] },
+      "rule": { "role": "neutral", "displayName": "Rule", "canonical": "#1d3a4a", "tonalRamp": ["#060d11", "#0c1b23", "#132835", "#1d3a4a", "#2a5468", "#3c7a95", "#5e93ab", "#a9cad8"] },
+      "rule-lit": { "role": "neutral", "displayName": "Lit Rule", "canonical": "#2f5b70", "tonalRamp": ["#0a1419", "#122630", "#1c3b4a", "#2f5b70", "#3f7995", "#5c9ab6", "#8dbdd1", "#c8dfe9"] },
+      "brass": { "role": "primary", "displayName": "Oxide Brass", "canonical": "#c8500f", "tonalRamp": ["#2b1103", "#471c05", "#642708", "#8c360b", "#c8500f", "#e0821f", "#eeae72", "#f8dcc2"] },
+      "brass-lit": { "role": "primary", "displayName": "Lit Brass", "canonical": "#e0821f", "tonalRamp": ["#301a04", "#4d2b07", "#6e3d0a", "#9b560e", "#c26d15", "#e0821f", "#eeb277", "#f9e2c4"] },
+      "oxide": { "role": "secondary", "displayName": "Oxide Red", "canonical": "#e0654a", "tonalRamp": ["#2f120c", "#4b1d13", "#6d2b1c", "#963c27", "#c05034", "#e0654a", "#ed9a86", "#f8d5cb"] },
+      "verdigris": { "role": "secondary", "displayName": "Verdigris", "canonical": "#6f9e8f", "tonalRamp": ["#111d19", "#1e332c", "#2d4c42", "#3f6a5c", "#548678", "#6f9e8f", "#9dc0b5", "#d2e2db"] },
+      "standby-ground": { "role": "neutral", "displayName": "Standby Ground", "canonical": "#000000", "tonalRamp": ["#000000", "#0a0a0a", "#141414", "#1c1c1c", "#262626", "#3a3a3a", "#6b6b6b", "#c4c4c4"] },
+      "standby-rule": { "role": "neutral", "displayName": "Standby Rule", "canonical": "#1c1c1c", "tonalRamp": ["#000000", "#0a0a0a", "#141414", "#1c1c1c", "#2a2a2a", "#454545", "#7a7a7a", "#cccccc"] },
+      "standby-ink-2": { "role": "neutral", "displayName": "Standby Sea Grey", "canonical": "#8d9aa2", "tonalRamp": ["#171b1e", "#262d31", "#374046", "#4b565d", "#616f77", "#8d9aa2", "#b3bec4", "#dfe5e8"] }
+    },
+    "typographyMeta": {
+      "hero-numeral": { "displayName": "Hero Numeral", "purpose": "The present-speed readout, the one figure the in-hand page is built around. Bodoni Moda with opsz pinned to 22 because auto-opsz resolves near 96 and drops the crossbar off the numeral 4." },
+      "numeral": { "displayName": "Entry Numeral", "purpose": "The value at the right edge of every ruled entry, and the numeric target input." },
+      "numeral-lg": { "displayName": "Large Numeral", "purpose": "The stopped-duration figure inside a stop entry, set in oxide." },
+      "label": { "displayName": "Label", "purpose": "One recipe for every heading, unit, status line, control and column caption on the in-hand page. Only the tracking varies (.14-.24em) with how much air the label has." },
+      "body": { "displayName": "Body", "purpose": "Entry descriptions, stop-entry prose and notes." },
+      "standby-display": { "displayName": "Standby Display", "purpose": "Primary glance numeral on the mounted display. Archivo, extended to 110%, because Bodoni's horizontal hairlines drop out when rotated 90 degrees and read from a windscreen mount." },
+      "standby-mid": { "displayName": "Standby Mid", "purpose": "Secondary glance readouts on the mounted display." },
+      "standby-label": { "displayName": "Standby Label", "purpose": "Condensed uppercase caption under a glance readout." }
+    },
+    "shadows": [
+      { "name": "legibility-halo", "value": "text-shadow: 0 0 16px var(--ground)", "purpose": "Zero-offset scrim in the ground colour under any readout overlaying the live WebGL field. Not depth; legibility. 18px in #000 on standby, 10-12px on smaller labels." },
+      { "name": "live-bloom", "value": "text-shadow: 0 0 calc(var(--lit,0)*34px) rgba(224,130,31,calc(var(--lit,0)*.4))", "purpose": "Second zero-offset halo whose radius and alpha are driven from the live --lit custom property set from real speed. 44px in warm amber on standby." },
+      { "name": "doubled-rule", "value": "border-top:1px solid var(--brass); box-shadow: inset 0 3px 0 -2px var(--brass)", "purpose": "The log's doubled rule marking a stop entry. Verdigris variant marks the passage summary. Notation, not elevation." },
+      { "name": "state-pulse", "value": "box-shadow: 0 0 0 0 rgba(244,237,224,.42) -> 0 0 0 9px rgba(244,237,224,0)", "purpose": "Expanding ring off the status mark; tempo carries state (2.6s moving / 1.3s brief / .9s stopped). Suppressed under prefers-reduced-motion." }
+    ],
+    "motion": [
+      { "name": "control-transition", "value": "border-color .2s ease, color .2s ease, background-color .2s ease", "purpose": "Default control state transition." },
+      { "name": "drum-roll", "value": "transform .45s cubic-bezier(.2,.8,.2,1)", "purpose": "Odometer drum column travel; every drum rests on a whole digit and rolls forward through carries." },
+      { "name": "beat", "value": "cubic-bezier(.2,.7,.3,1) infinite", "purpose": "The status mark's pulse easing; period encodes state." },
+      { "name": "mark-fade", "value": "background-color .45s ease", "purpose": "Status mark hue change between states." }
+    ],
+    "breakpoints": [
+      { "name": "column", "value": "560px", "purpose": "The single centred column max-width. There are no width breakpoints in this system; the column is identical at every viewport width." },
+      { "name": "landscape", "value": "(orientation: landscape)", "purpose": "The only mode switch: landscape enters the mounted standby display. Portrait-forced entry rotates it 90 degrees." },
+      { "name": "reduced-motion", "value": "(prefers-reduced-motion: reduce)", "purpose": "Freezes the velocity field, the drum transition and the status pulse." }
+    ]
+  },
+  "components": [
+    {
+      "name": "Control",
+      "kind": "button",
+      "refersTo": "button",
+      "description": "The default engraved control: a square lit-rule outline over transparent ground, condensed uppercase lettering.",
+      "html": "<button class=\"ds-btn\">Standby</button>",
+      "css": ".ds-btn{font-family:Archivo,system-ui,sans-serif;font-size:12px;font-weight:600;font-stretch:75%;letter-spacing:.18em;text-transform:uppercase;color:#f4ede0;background:transparent;border:1px solid #2f5b70;border-radius:0;padding:13px 16px;cursor:pointer;transition:border-color .2s ease,color .2s ease,background-color .2s ease}.ds-btn:hover{border-color:#c8500f;color:#e0821f}.ds-btn:focus-visible{outline:2px solid #e0821f;outline-offset:2px}.ds-btn:disabled{opacity:.5;cursor:default}"
+    },
+    {
+      "name": "Primary Control",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The one filled control in the system: brass fill, white lettering, with engraved corner brackets.",
+      "html": "<button class=\"ds-btn-primary\">Start trip</button>",
+      "css": ".ds-btn-primary{position:relative;font-family:Archivo,system-ui,sans-serif;font-size:12px;font-weight:600;font-stretch:75%;letter-spacing:.18em;text-transform:uppercase;color:#fff;background:#c8500f;border:1px solid #c8500f;border-radius:0;padding:13px 16px;cursor:pointer;transition:border-color .2s ease,color .2s ease,background-color .2s ease}.ds-btn-primary::before,.ds-btn-primary::after{content:\"\";position:absolute;width:7px;height:7px;border:1px solid rgba(255,255,255,.6)}.ds-btn-primary::before{top:5px;left:5px;border-right:0;border-bottom:0}.ds-btn-primary::after{bottom:5px;right:5px;border-left:0;border-top:0}.ds-btn-primary:hover{background:#e0821f;border-color:#e0821f;color:#2a1200}.ds-btn-primary:focus-visible{outline:2px solid #e0821f;outline-offset:2px}"
+    },
+    {
+      "name": "Input",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "No box: a single lit-rule bottom border over transparent ground. Disabled switches the rule to dashed, borrowing the reckoned notation.",
+      "html": "<input class=\"ds-input\" placeholder=\"Place, or paste &quot;lat, lon&quot; / Maps link\">",
+      "css": ".ds-input{font-family:Archivo,system-ui,sans-serif;font-size:16px;color:#f4ede0;background:transparent;border:0;border-bottom:1px solid #2f5b70;border-radius:0;padding:9px 2px;font-variant-numeric:tabular-nums;caret-color:#e0821f;width:100%}.ds-input::placeholder{color:#7d9aa8;opacity:1}.ds-input:focus-visible{outline:2px solid #e0821f;outline-offset:2px}.ds-input:disabled{color:#7d9aa8;border-bottom-style:dashed}"
+    },
+    {
+      "name": "Ruled Entry",
+      "kind": "custom",
+      "refersTo": "row",
+      "description": "One line of the log: description left, Bodoni value hard right, opened by a hairline rule.",
+      "html": "<div class=\"ds-row\"><span>Distance run, observed</span><span>128.40 km</span></div><div class=\"ds-row ds-row-reckoned\"><span>Live odometer, reckoned between fixes</span><span>128412</span></div>",
+      "css": ".ds-row{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:9px 0;border-top:1px solid #1d3a4a;font-family:Archivo,system-ui,sans-serif;font-size:14px;color:#7d9aa8}.ds-row span:last-child{font-family:\"Bodoni Moda\",Didot,serif;font-variant-numeric:tabular-nums;font-variation-settings:'opsz' 16;font-size:21px;font-weight:600;color:#f4ede0;text-align:right;letter-spacing:.01em}.ds-row-reckoned{border-top-style:dashed;border-top-color:#2f5b70}.ds-row-reckoned span:last-child{color:#7d9aa8}"
+    },
+    {
+      "name": "Stop Entry",
+      "kind": "card",
+      "refersTo": "band",
+      "description": "A stop stated as a log entry, marked by a doubled brass rule. Never an alert.",
+      "html": "<div class=\"ds-stop\"><h2>Stopped</h2><div class=\"ds-stop-big\">6:41</div><div class=\"ds-lbl\">Stopped for</div><p>Delay added to your arrival: <b>6:41</b></p></div>",
+      "css": ".ds-stop{border-top:1px solid #c8500f;box-shadow:inset 0 3px 0 -2px #c8500f;padding:14px 0 16px;position:relative;font-family:Archivo,system-ui,sans-serif}.ds-stop h2{font-size:11px;font-weight:600;font-stretch:75%;letter-spacing:.2em;text-transform:uppercase;color:#e0821f;margin:0 0 12px}.ds-stop-big{font-family:\"Bodoni Moda\",Didot,serif;font-variant-numeric:tabular-nums;font-size:52px;font-weight:500;line-height:1;color:#e0654a}.ds-lbl{font-size:11px;font-weight:600;font-stretch:75%;letter-spacing:.2em;text-transform:uppercase;color:#7d9aa8;margin-top:4px}.ds-stop p{font-size:13px;color:#7d9aa8;margin-top:7px;line-height:1.5}.ds-stop p b{color:#f4ede0;font-weight:500;font-family:\"Bodoni Moda\",Didot,serif;font-variant-numeric:tabular-nums;font-size:15px}"
+    },
+    {
+      "name": "Hero Readout",
+      "kind": "custom",
+      "refersTo": "hero-numeral",
+      "description": "The current watch: an engraved Bodoni numeral with a pinned optical size and a zero-offset legibility halo, over marginal averages divided by vertical hairlines.",
+      "html": "<div class=\"ds-speed\"><div class=\"ds-n\">64</div><div class=\"ds-u\">km/h &middot; present speed</div><div class=\"ds-sub\"><span>Moving avg<b>58</b></span><span>Trip avg<b>47</b></span><span>Maximum<b>112</b></span></div></div>",
+      "css": ".ds-speed{position:relative;text-align:center;padding:26px 0 18px;border-bottom:1px solid #1d3a4a;font-family:Archivo,system-ui,sans-serif}.ds-n{font-family:\"Bodoni Moda\",Didot,serif;font-variant-numeric:tabular-nums;font-variation-settings:'opsz' 22;font-size:clamp(104px,30vw,138px);line-height:.9;font-weight:650;letter-spacing:-.005em;color:#f4ede0;text-shadow:0 0 16px #0b1a24}.ds-u{font-size:11px;font-weight:600;font-stretch:75%;letter-spacing:.24em;text-transform:uppercase;color:#7d9aa8;margin-top:10px;text-shadow:0 0 10px #0b1a24}.ds-sub{display:flex;justify-content:center;margin-top:16px;font-size:11px;font-weight:600;font-stretch:75%;letter-spacing:.16em;text-transform:uppercase;color:#7d9aa8}.ds-sub span{padding:0 14px;border-left:1px solid #1d3a4a}.ds-sub span:first-child{border-left:0}.ds-sub b{display:block;margin-top:5px;font-size:20px;font-weight:600;letter-spacing:0;font-variation-settings:'opsz' 16;font-family:\"Bodoni Moda\",Didot,serif;font-variant-numeric:tabular-nums;color:#f4ede0}"
+    },
+    {
+      "name": "Status Mark",
+      "kind": "chip",
+      "refersTo": "state-mark",
+      "description": "The masthead's watch pulse: the one round object in the system. Hue and beat tempo both carry state.",
+      "html": "<div class=\"ds-status ds-moving\"><span class=\"ds-dot\"></span><span>Under way</span></div>",
+      "css": ".ds-status{font-family:Archivo,system-ui,sans-serif;font-size:11px;font-weight:600;font-stretch:75%;letter-spacing:.2em;text-transform:uppercase;color:#7d9aa8;display:flex;align-items:center;gap:9px}.ds-dot{width:7px;height:7px;border-radius:50%;background:#7d9aa8;flex:none;transition:background-color .45s ease}.ds-moving .ds-dot{background:#6f9e8f;animation:ds-beat 2.6s cubic-bezier(.2,.7,.3,1) infinite}.ds-brief .ds-dot{background:#e0821f;animation:ds-beat 1.3s cubic-bezier(.2,.7,.3,1) infinite}.ds-stopped .ds-dot{background:#e0654a;animation:ds-beat .9s cubic-bezier(.2,.7,.3,1) infinite}@keyframes ds-beat{0%{box-shadow:0 0 0 0 rgba(244,237,224,.42)}70%,100%{box-shadow:0 0 0 9px rgba(244,237,224,0)}}"
+    },
+    {
+      "name": "Standby Widget",
+      "kind": "custom",
+      "refersTo": "standby-display",
+      "description": "The mounted engraved plate, read at a glance: extended Archivo numerals over a condensed caption, scaled off its own container-query pane.",
+      "html": "<div class=\"ds-pw\"><div class=\"ds-w\"><div class=\"ds-big\">64</div><div class=\"ds-lab\">km/h &middot; under way</div></div></div>",
+      "css": ".ds-pw{position:relative;height:260px;background:#000;container-type:size}.ds-w{height:100%;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:3cqb 4cqi;font-variant-numeric:tabular-nums;color:#f4ede0;font-family:Archivo,system-ui,sans-serif}.ds-big{font-size:clamp(72px,min(56cqb,42cqi),220px);line-height:.98;font-weight:600;font-stretch:110%;letter-spacing:-.015em;text-shadow:0 0 18px #000}.ds-lab{font-size:clamp(13px,4cqi,22px);font-weight:600;font-stretch:75%;letter-spacing:.22em;text-transform:uppercase;color:#98a5ad;margin-top:2.6cqb;text-shadow:0 0 10px #000}"
+    },
+    {
+      "name": "Unit Selector",
+      "kind": "chip",
+      "refersTo": "button-sm",
+      "description": "Flush small controls sharing their borders; selection is marked by a brass border and lit-brass lettering, never a fill.",
+      "html": "<div class=\"ds-units\"><button class=\"ds-unit ds-sel\">km</button><button class=\"ds-unit\">m</button><button class=\"ds-unit\">cm</button></div>",
+      "css": ".ds-units{display:flex}.ds-unit{font-family:Archivo,system-ui,sans-serif;font-size:11px;font-weight:600;font-stretch:75%;letter-spacing:.14em;text-transform:uppercase;color:#f4ede0;background:transparent;border:1px solid #2f5b70;border-left-width:0;border-radius:0;padding:7px 11px;cursor:pointer;transition:border-color .2s ease,color .2s ease}.ds-unit:first-child{border-left-width:1px}.ds-unit:hover{border-color:#c8500f;color:#e0821f}.ds-unit:focus-visible{outline:2px solid #e0821f;outline-offset:2px}.ds-sel{border-color:#c8500f;color:#e0821f}"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Deck Log",
+    "overview": "This is a watch-keeper's record of a passage, not a dashboard. The discipline of a log is stating what was run honestly, including the stretches nobody observed - so the system's entire structural vocabulary is ruled entries on dark paper, and its most important invention is a set of rules that say how a number was come by, not just what it is. It refuses the near-black-plus-neon-gauge instrument cluster the category ships: there is no gauge, no glow-for-its-own-sake, no card, no rounded panel, no glass.\n\nStructure is carried entirely by hairline rules. Every band, every entry, every column division is a 1px line; nothing is a container. Colour is scarce and confined to rules, fills and marks, and the ink is warm log-paper cream on deep night-watch ground - the paper is the ink, not the background. Numerals are the material and everything else is the margin: labels are small, condensed and set in small-caps rhythm so they read as a clerk's marginalia beside engraved figures.\n\nThe system serves two reading distances and treats that split as a first-class rule rather than an inconsistency. The in-hand page is a printed page: Bodoni Moda with pinned optical sizes carries every numeral. The mounted standby display is an engraved plate read in a fraction of a second from a windscreen mount, often rotated 90 degrees, where Bodoni's horizontal hairlines drop out - so Archivo, wide and heavy, carries every standby numeral. Behind both sits one live WebGL material: the log's own ruled paper streaming under a pen, its rule density, travel and tint driven by real speed and trip state.",
+    "keyCharacteristics": [
+      "Hairline rules carry all structure; there are no cards, panels, or filled containers.",
+      "Rule weight and mark carry state: solid = observed, dashed = reckoned, doubled = a stop entry.",
+      "Two type systems for two reading distances: engraved Bodoni in hand, extended Archivo at a glance.",
+      "The width axis works in both directions: labels condensed to 75%, glance numerals extended to 110%.",
+      "Colour is confined to rules, fills and marks; brass is never text.",
+      "A single live WebGL field is the only image in the system, and it is driven by real data."
+    ],
+    "rules": [
+      { "name": "The Brass-Is-Not-Ink Rule", "body": "--brass never sets a text colour. It draws rules, fills, bracket marks and the selection ground; where brass must be read as lettering, --brass-lit is the only permitted value. Audit test: search the stylesheet for color:var(--brass) - there must be zero hits.", "section": "colors" },
+      { "name": "The Colour-Is-Reserved Rule", "body": "Hue appears only on rules, fills and marks. No paragraph, label, heading or ordinary numeral is coloured; the entire in-hand page is cream and sea grey until a state occurs.", "section": "colors" },
+      { "name": "The State-Hue Trio Rule", "body": "Only three hues encode state - verdigris under way, lit brass at a brief stop, oxide when stopped - and each one appears simultaneously on the status mark, the message line and the WebGL field's tint. State is never signalled by one lone element.", "section": "colors" },
+      { "name": "The Two-Distances Rule", "body": "Bodoni Moda carries every numeral on the in-hand page; Archivo carries every numeral on the mounted standby display. This is not a drift, it is the system: rotated 90 degrees and read from a windscreen mount at a fraction of a second, Bodoni's horizontal hairlines drop out and its 1 and 4 read as slabs. The mounted display is an engraved plate, not a printed page. Any new surface must declare which distance it belongs to and take that surface's face whole.", "section": "typography" },
+      { "name": "The Pinned Optical Size Rule", "body": "Every Bodoni numeral pins font-variation-settings:'opsz' - 22 on the hero, 16 on every smaller numeral. Left to auto, the browser resolves near 96 at hero size, the thinnest cut in the loaded range, and the numeral 4 loses its crossbar. Optical size is load-bearing here, not stylistic: never ship a Bodoni numeral without a pinned opsz.", "section": "typography" },
+      { "name": "The Both-Ways Width Rule", "body": "The variable width axis runs in both directions and the direction encodes distance. Labels are condensed (75%) at every size, on both surfaces. Glance numerals are extended (110%, 105% in the standby key-value block). Nothing in the system sits at the default width.", "section": "typography" },
+      { "name": "The Tabular Rule", "body": "Every numeral carries font-variant-numeric:tabular-nums, so a changing readout never shifts its neighbours. The one deliberate exception is the odometer drum, where Bodoni ships no tabular figures: the drum strip carries all ten digits and sizes itself to the widest, because a fixed 1ch slot lets an 8 overlap.", "section": "typography" },
+      { "name": "The Rules-Carry-Rhythm Rule", "body": "There is no spacing scale to conform to. Vertical rhythm is set by hairline rules and the padding that hangs off them (9px inside an entry, 14/16px inside a band, 26px around the hero). Do not retrofit a modular scale; add a rule and hang its padding.", "section": "layout" },
+      { "name": "The Own-Pane Scaling Rule", "body": "The standby display sizes off its own pane, never the viewport: each pane is container-type:size and every standby size is expressed in cqb/cqi. Viewport units collapse to their clamp floors in the rotated landscape branch. Any new standby widget uses container query units.", "section": "layout" },
+      { "name": "The No-Depth Rule", "body": "No shadow in this system describes elevation. A shadow may be a legibility scrim (zero offset, ground colour), a doubled rule, or a pulse. Anything offset, anything soft-grey, anything implying a light source above a raised card, is out of world.", "section": "elevation" },
+      { "name": "The No-Container Rule", "body": "Structure is drawn with hairline rules, never with a box. If a grouping needs to be legible, give it a rule and a heading - not a card, not a fill, not a radius, not glass.", "section": "shapes" }
+    ],
+    "dos": [
+      "Do carry structure on hairline rules: border-top:1px solid var(--rule) for a band or entry, --rule-lit where the division must be felt.",
+      "Do use the rule's own form to state provenance - solid for observed, dashed lit-rule for reckoned, doubled (border plus inset 0 3px 0 -2px) for a stop entry.",
+      "Do pin font-variation-settings:'opsz' on every Bodoni numeral (22 at hero size, 16 elsewhere).",
+      "Do condense every label to font-stretch:75% at 11px/600 uppercase, and extend every standby numeral to 110%.",
+      "Do size the standby display in cqb/cqi against its own container-type:size pane.",
+      "Do give any readout that overlays the live field a zero-offset halo in the ground colour.",
+      "Do use --brass-lit for any brass that must be read as text or as a focus ring.",
+      "Do keep every numeral tabular-nums, except the odometer drum where the strip sizes itself."
+    ],
+    "donts": [
+      "Don't put a value in a card, panel, tile or filled box; a band and a rule is the container.",
+      "Don't give a panel, control, field or band a corner radius - the circle is reserved for state marks.",
+      "Don't use a shadow to imply elevation. Halos are legibility scrims at zero offset; nothing floats.",
+      "Don't use --brass as a text colour; it does not clear 4.5:1 on the ground.",
+      "Don't colour ordinary text. Hue belongs to rules, fills and marks.",
+      "Don't set a standby numeral in Bodoni Moda, or an in-hand numeral in Archivo.",
+      "Don't size the standby display in viewport units - they collapse to their clamp floors in the rotated branch.",
+      "Don't add glass, blur, a gradient used as a surface fill, rope or parchment; the only image in the system is the data-driven velocity field. (A gradient may fade a hairline out at its ends, as the standby pane divider does.)",
+      "Don't state a stop as an alert. A stop is a log entry with a doubled rule."
+    ]
+  }
+}

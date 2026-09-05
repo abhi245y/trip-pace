@@ -1,3 +1,7 @@
 node_modules/
 .wrangler/
 .dev.vars
+
+# impeccable working artifacts: review captures and decision-page payloads
+.impeccable/review/
+.impeccable/questions/
