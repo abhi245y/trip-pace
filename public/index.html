@@ -1,0 +1,437 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#101828">
+<link rel="manifest" href='data:application/manifest+json,{"name":"Trip pace","short_name":"Trip pace","display":"standalone","background_color":"%23101828","theme_color":"%23101828","start_url":"."}'>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<title>Trip pace</title>
+<style>
+:root{--bg:#101828;--panel:#182238;--line:#26334f;--ink:#eef2fb;--dim:#8a97b6;--amber:#ffb340;--ok:#5fd39a;--warn:#ff7a59}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--bg);color:var(--ink);font-family:-apple-system,"SF Pro Display",Inter,system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+body{padding:max(12px,env(safe-area-inset-top)) 16px max(24px,env(safe-area-inset-bottom));max-width:520px;margin:0 auto}
+button{font:inherit;color:inherit;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 16px;font-weight:600;cursor:pointer}
+button.primary{background:var(--amber);color:#1a1200;border-color:var(--amber)}
+button.sm{padding:8px 12px;font-size:14px;border-radius:10px}
+button:focus-visible,input:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
+input{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:17px;font-variant-numeric:tabular-nums}
+input.num{width:110px;font-size:20px}
+.top{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:6px}
+.status{font-size:14px;color:var(--dim);display:flex;align-items:center;gap:8px}
+.dot{width:9px;height:9px;border-radius:50%;background:var(--dim)}
+.moving .dot{background:var(--ok)} .brief .dot{background:var(--amber)} .stopped .dot{background:var(--warn)}
+.speed{text-align:center;padding:18px 0 6px}
+.speed .n{font-size:118px;line-height:1;font-weight:200;letter-spacing:-.04em;font-variant-numeric:tabular-nums}
+.speed .u{font-size:15px;color:var(--dim);margin-top:2px}
+.speed .sub{font-size:14px;color:var(--dim);margin-top:10px}
+.speed .sub b{color:var(--ink);font-weight:500}
+section{background:var(--panel);border-radius:16px;padding:14px 16px;margin-top:12px}
+h2{font-size:13px;font-weight:500;color:var(--dim);margin-bottom:10px}
+.row{display:flex;justify-content:space-between;align-items:baseline;padding:6px 0;border-top:1px solid var(--line);font-size:15px;gap:10px}
+.row:first-of-type{border-top:0}
+.row span:last-child{font-variant-numeric:tabular-nums;font-size:19px;font-weight:500;text-align:right}
+.grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;text-align:center}
+.grid div{background:var(--bg);border-radius:12px;padding:10px 4px}
+.grid .v{font-size:22px;font-weight:500;font-variant-numeric:tabular-nums}
+.grid .l{font-size:12px;color:var(--dim);margin-top:2px}
+.target{display:flex;align-items:center;gap:10px;justify-content:space-between;margin-bottom:6px}
+.stop{border:1px solid var(--warn)}
+.stop .big{font-size:40px;font-weight:300;font-variant-numeric:tabular-nums;line-height:1.1}
+.stop p,.note{font-size:14px;color:var(--dim);margin-top:4px}
+.stop p b{color:var(--ink);font-weight:500}
+.briefline{font-size:14px;color:var(--amber);text-align:center;padding:4px 0 0}
+.actions{display:flex;gap:10px;margin-top:14px}
+.actions button{flex:1}
+.msg{font-size:13px;color:var(--warn);margin-top:8px;text-align:center;min-height:1em}
+.hide{display:none}
+.sum{border:1px solid var(--ok)} .sum .grid{grid-template-columns:1fr 1fr} .sum .v{font-size:20px}
+.search{display:flex;gap:8px}.search input{flex:1;min-width:0}
+.list button{display:block;width:100%;text-align:left;margin-top:6px;font-weight:500;background:var(--bg)}
+.list button.sel{border-color:var(--amber)}
+.list small{display:block;color:var(--dim);font-weight:400;font-size:13px}
+#map{height:200px;border-radius:12px;margin-top:10px;background:#0b1220}
+.leaflet-container{font:inherit}
+.units{display:flex;gap:6px}.units button{padding:6px 10px;font-size:13px;border-radius:8px}.units button.sel{border-color:var(--amber);color:var(--amber)}
+.h2row{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}.h2row h2{margin:0}
+/* ---- standby ---- */
+#sb{position:fixed;inset:0;background:#000;z-index:50;display:none;color:#e8e8e8}
+#sb.on{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:100%;height:100dvh;width:100dvw;overflow:hidden}
+#sb.on.rot{width:100dvh;height:100dvw;transform:rotate(90deg) translateY(-100%);transform-origin:top left}
+#sb .pw{position:relative;height:100%;min-height:0}
+.pane{height:100%;width:100%;overflow-y:scroll;scroll-snap-type:y mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none;overscroll-behavior:contain}
+.pane::-webkit-scrollbar{display:none}
+.w{height:100%;scroll-snap-align:start;scroll-snap-stop:always;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:16px;font-variant-numeric:tabular-nums}
+.w .big{font-size:clamp(64px,22vmin,170px);line-height:.95;font-weight:200;letter-spacing:-.04em}
+.w .mid{font-size:clamp(28px,8vmin,64px);font-weight:300;line-height:1.1}
+.w .lab{font-size:clamp(13px,2.4vmin,18px);color:#8a8a8a;margin-top:8px}
+.w .ok{color:#5fd39a}.w .amb{color:#ffb340}.w .wrn{color:#ff7a59}
+.w .kv{display:grid;grid-template-columns:auto auto;gap:6px 18px;font-size:clamp(15px,3vmin,24px);text-align:left}
+.w .kv span:nth-child(odd){color:#8a8a8a}.w .kv span:nth-child(even){font-weight:500}
+.dots{position:absolute;right:6px;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:6px}
+.dots i{width:5px;height:5px;border-radius:50%;background:#333}.dots i.cur{background:#999}
+#sbExit{position:fixed;top:max(8px,env(safe-area-inset-top));right:12px;background:#111;border-color:#222;color:#888;z-index:51}
+@media(prefers-reduced-motion:no-preference){.pane{scroll-behavior:smooth}}
+</style>
+</head>
+<body>
+<div class="top">
+  <div class="status" id="status"><span class="dot"></span><span id="stText">Not started</span></div>
+  <div class="status" id="gps">GPS ±—</div>
+</div>
+
+<div class="speed">
+  <div class="n" id="spd">0</div>
+  <div class="u">km/h now</div>
+  <div class="sub">moving avg <b id="mavg">—</b> · trip avg <b id="tavg">—</b> · max <b id="max">—</b></div>
+</div>
+
+<section id="briefBox" class="hide"><div class="briefline" id="briefTxt"></div></section>
+
+<section id="stopBox" class="stop hide">
+  <h2>Stopped</h2>
+  <div class="big" id="stopFor">0:00</div>
+  <p>Delay added to your arrival: <b id="stopDelay">0:00</b></p>
+  <p>At <b id="preSpd">—</b> km/h you'd be <b id="lostS">0.0 km</b> further, at <b id="lostKm">—</b></p>
+  <p>At moving avg <b id="preAvg">—</b> km/h you'd be <b id="lostA">0.0 km</b> further</p>
+  <p>Remaining at pre-stop speed now takes <b id="etaGrow">—</b></p>
+</section>
+
+<section id="routeBox">
+  <h2>Destination</h2>
+  <div class="search"><input id="q" placeholder="Place, or paste \"lat, lon\" / Maps link" enterkeyhint="search"><button class="sm" id="qBtn">Find</button></div>
+  <div class="list" id="places"></div>
+  <div class="list" id="routes"></div>
+  <div id="map" class="hide"></div>
+  <p class="note" id="routeNote">No route set. Remaining distance will use the manual target below.</p>
+</section>
+
+<section>
+  <div class="h2row"><h2>At current speed you cover</h2>
+    <div class="units" id="units"><button class="sm sel" data-u="km">km</button><button class="sm" data-u="m">m</button><button class="sm" data-u="cm">cm</button></div></div>
+  <div class="grid">
+    <div><div class="v" id="d1">0.0</div><div class="l"><span class="ul">km</span> per min</div></div>
+    <div><div class="v" id="d30">0.0</div><div class="l"><span class="ul">km</span> per 30 min</div></div>
+    <div><div class="v" id="d60">0.0</div><div class="l"><span class="ul">km</span> per hour</div></div>
+  </div>
+  <h2 style="margin-top:12px">At moving average</h2>
+  <div class="grid">
+    <div><div class="v" id="a1">0.0</div><div class="l"><span class="ul">km</span> per min</div></div>
+    <div><div class="v" id="a30">0.0</div><div class="l"><span class="ul">km</span> per 30 min</div></div>
+    <div><div class="v" id="a60">0.0</div><div class="l"><span class="ul">km</span> per hour</div></div>
+  </div>
+</section>
+
+<section>
+  <div class="target">
+    <h2 style="margin:0" id="tgtLabel">Distance to cover (km)</h2>
+    <input class="num" id="target" type="number" inputmode="decimal" min="0" step="0.5" value="100">
+  </div>
+  <div class="row"><span>Remaining</span><span id="rem">—</span></div>
+  <div class="row"><span>Time at current speed</span><span id="etaC">—</span></div>
+  <div class="row"><span>Time at moving avg</span><span id="etaM">—</span></div>
+  <div class="row"><span>Time at trip avg (incl. stops)</span><span id="etaT">—</span></div>
+  <div class="row"><span>Arrive around</span><span id="arr">—</span></div>
+</section>
+
+<section>
+  <h2>This trip</h2>
+  <div class="row"><span>Travelled</span><span id="dist">0.00 km</span></div>
+  <div class="row"><span>Live odometer</span><span id="odo">0</span></div>
+  <div class="row"><span>Elapsed</span><span id="el">0:00</span></div>
+  <div class="row"><span>Moving</span><span id="mov">0:00</span></div>
+  <div class="row"><span>Stopped</span><span id="stp">0:00</span></div>
+  <div class="row"><span>Reconstructed while suspended</span><span id="gap">0:00</span></div>
+</section>
+
+<section id="sumBox" class="sum hide">
+  <h2>Trip summary</h2>
+  <div class="grid" id="sumGrid"></div>
+</section>
+
+<div class="actions">
+  <button id="sbBtn">Standby</button>
+  <button class="primary" id="startBtn">Start trip</button>
+  <button id="resetBtn">Reset</button>
+</div>
+<div class="msg" id="msg"></div>
+<div id="sb"><div class="pw"><div class="pane" id="paneL"></div><div class="dots" id="dotsL"></div></div><div class="pw"><div class="pane" id="paneR"></div><div class="dots" id="dotsR"></div></div></div>
+<button id="sbExit" class="sm hide">Exit</button>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>
+// ---- tunables ----
+const STOP_KMH=2, RESUME_KMH=5, STOP_CONFIRM_S=4, BRIEF_MAX_S=120, MIN_ACC_M=60, EMA=0.35,
+      GAP_S=30, OFFROUTE_M=250;
+
+const $=id=>document.getElementById(id);
+let UNIT='km';const UF={km:1,m:1000,cm:100000};
+const fu=km=>{const v=km*UF[UNIT];return UNIT==='km'?v.toFixed(v<10?2:1):Math.round(v).toLocaleString()};
+const setV=(k,v)=>{const e=$(k);if(e)e.textContent=v;document.querySelectorAll(`[data-v="${k}"]`).forEach(x=>x.textContent=v)};
+const S={on:false,watch:null,start:0,moving:0,stopped:0,dist:0,spd:0,ema:0,max:0,
+  last:null,state:'idle',belowSince:0,stopStart:0,preSpd:0,preAvg:0,preDist:0,wake:null,stops:[],end:0,
+  route:null,prog:0,gap:0,lastFix:null};
+const KEYS=['start','moving','stopped','dist','max','state','stopStart','preSpd','preAvg','preDist','stops','end','on','route','prog','gap','lastFix','ema'];
+const save=()=>{try{const o={};KEYS.forEach(k=>o[k]=S[k]);o.target=$('target').value;localStorage.setItem('trip',JSON.stringify(o))}catch{}};
+const load=()=>{try{return JSON.parse(localStorage.getItem('trip'))}catch{return null}};
+
+const fmtT=s=>{s=Math.max(0,Math.round(s));const h=Math.floor(s/3600),m=Math.floor(s%3600/60),x=s%60;
+  return h?`${h}:${String(m).padStart(2,'0')}:${String(x).padStart(2,'0')}`:`${m}:${String(x).padStart(2,'0')}`};
+const clock=d=>new Date(d*1000).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+const R=6371000,rad=Math.PI/180;
+const hav=(a,b)=>{const dl=(b.lat-a.lat)*rad,dn=(b.lon-a.lon)*rad,
+  q=Math.sin(dl/2)**2+Math.cos(a.lat*rad)*Math.cos(b.lat*rad)*Math.sin(dn/2)**2;return 2*R*Math.asin(Math.sqrt(q))};
+const mavg=()=>S.moving>20?S.dist/S.moving*3.6:0;
+const tavg=()=>{const t=S.moving+S.stopped;return t>20?S.dist/t*3.6:0};
+
+// ---- route: geocode (Nominatim) + routing (OSRM), both keyless ----
+let map,routeLayer,meMarker,dest,routeOpts=[];
+async function geocode(){
+  const q=$('q').value.trim();if(!q)return;
+  const m=q.match(/(-?\d{1,2}\.\d+)\s*,\s*(-?\d{1,3}\.\d+)/)||q.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/);
+  if(m){dest={lat:+m[1],lon:+m[2],name:`${(+m[1]).toFixed(5)}, ${(+m[2]).toFixed(5)}`};$('places').innerHTML='';fetchRoutes();return}
+  $('places').innerHTML='<p class="note">Searching…</p>';
+  try{const r=await fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&limit=5&q=${encodeURIComponent(q)}`);
+    const js=await r.json();
+    $('places').innerHTML=js.length?'':'<p class="note">Nothing found.</p>';
+    js.forEach(p=>{const b=document.createElement('button');b.innerHTML=`${p.name||p.display_name.split(',')[0]}<small>${p.display_name}</small>`;
+      b.onclick=()=>{dest={lat:+p.lat,lon:+p.lon,name:p.display_name};$('places').innerHTML='';$('q').value=p.display_name.split(',').slice(0,2).join(',');fetchRoutes()};
+      $('places').appendChild(b)});
+  }catch{$('places').innerHTML='<p class="note">Search failed (no internet?).</p>'}
+}
+function here(){return new Promise((res,rej)=>navigator.geolocation.getCurrentPosition(p=>res({lat:p.coords.latitude,lon:p.coords.longitude}),rej,{enableHighAccuracy:true,timeout:15000}))}
+async function fetchRoutes(){
+  $('routes').innerHTML='<p class="note">Getting routes…</p>';
+  try{const o=S.last?{lat:S.last.c.latitude,lon:S.last.c.longitude}:await here();
+    const r=await fetch(`https://router.project-osrm.org/route/v1/driving/${o.lon},${o.lat};${dest.lon},${dest.lat}?alternatives=3&overview=full&geometries=geojson`);
+    const js=await r.json();if(js.code!=='Ok')throw 0;
+    routeOpts=js.routes.map(rt=>({pts:rt.geometry.coordinates.map(c=>({lat:c[1],lon:c[0]})),dist:rt.distance,dur:rt.duration}));
+    $('routes').innerHTML='<p class="note">Pick the route you chose in Google Maps:</p>';
+    routeOpts.forEach((rt,i)=>{const b=document.createElement('button');
+      b.innerHTML=`Route ${i+1}: ${(rt.dist/1000).toFixed(1)} km<small>about ${fmtT(rt.dur)} without stops</small>`;
+      b.onclick=()=>{[...$('routes').children].forEach(x=>x.classList.remove('sel'));b.classList.add('sel');setRoute(rt)};
+      $('routes').appendChild(b)});
+    showMap(routeOpts);
+  }catch{$('routes').innerHTML='<p class="note">Routing failed. Check internet, or set distance manually below.</p>'}
+}
+function setRoute(rt){
+  const cum=[0];for(let i=1;i<rt.pts.length;i++)cum[i]=cum[i-1]+hav(rt.pts[i-1],rt.pts[i]);
+  S.route={pts:rt.pts,cum,total:cum[cum.length-1],name:dest?dest.name:''};
+  S.prog=0;$('target').value=(S.route.total/1000).toFixed(1);$('target').disabled=true;$('tgtLabel').textContent='Route length (km)';
+  $('routeNote').textContent=`Route set: ${(S.route.total/1000).toFixed(1)} km to ${(S.route.name||'destination').split(',').slice(0,2).join(',')}. Remaining follows the route.`;
+  showMap([rt]);save();
+}
+function showMap(list){
+  $('map').classList.remove('hide');
+  if(!map){map=L.map('map',{zoomControl:false,attributionControl:false});L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19}).addTo(map);routeLayer=L.layerGroup().addTo(map)}
+  routeLayer.clearLayers();
+  list.forEach((rt,i)=>L.polyline(rt.pts.map(p=>[p.lat,p.lon]),{color:i?'#8a97b6':'#ffb340',weight:i?3:5}).addTo(routeLayer));
+  if(list[0])map.fitBounds(L.polyline(list[0].pts.map(p=>[p.lat,p.lon])).getBounds(),{padding:[16,16]});
+}
+// nearest point on route → distance along route (m) and off-route distance (m)
+function snap(p){
+  const r=S.route;let best={along:S.prog,off:1e9};
+  // search a window around current progress first, then whole route
+  const pts=r.pts,cum=r.cum;
+  for(let i=0;i<pts.length-1;i++){
+    const a=pts[i],b=pts[i+1];
+    const ax=(a.lon)*Math.cos(a.lat*rad),ay=a.lat,bx=(b.lon)*Math.cos(a.lat*rad),by=b.lat,px=p.lon*Math.cos(a.lat*rad),py=p.lat;
+    const dx=bx-ax,dy=by-ay,l2=dx*dx+dy*dy;let t=l2?((px-ax)*dx+(py-ay)*dy)/l2:0;t=Math.max(0,Math.min(1,t));
+    const q={lat:ay+t*dy,lon:(ax+t*dx)/Math.cos(a.lat*rad)};const off=hav(p,q);
+    const along=cum[i]+t*(cum[i+1]-cum[i]);
+    // prefer forward progress; penalise going backwards >500 m (loops/overlaps)
+    const score=off+(along<S.prog-500?2000:0);
+    if(score<best.score||best.score===undefined)best={along,off,score};
+  }
+  return best;
+}
+function remainingKm(){
+  if(S.route)return Math.max(0,S.route.total-S.prog)/1000;
+  return Math.max(0,(+$('target').value||0)-S.dist/1000);
+}
+
+// ---- suspended-gap reconstruction ----
+// We know: last fix (pos,time), moving avg before suspension; now: new fix. Split the gap into
+// "driving at previous moving avg" + "stopped" so distance, times and averages stay honest.
+function reconcile(c,t){
+  const lf=S.lastFix,dt=t-lf.t;if(dt<GAP_S)return false;
+  let d;
+  if(S.route){const s=snap({lat:c.latitude,lon:c.longitude});d=s.off<OFFROUTE_M?Math.max(0,s.along-S.prog):hav({lat:lf.lat,lon:lf.lon},{lat:c.latitude,lon:c.longitude});}
+  else d=hav({lat:lf.lat,lon:lf.lon},{lat:c.latitude,lon:c.longitude});
+  const ref=(S.preAvg||mavg()||S.preSpd||40)/3.6;          // m/s assumption for the driven part
+  let driveT=Math.min(dt,d/ref), stopT=dt-driveT;
+  if(d/dt*3.6>=RESUME_KMH*2){driveT=dt;stopT=0}             // clearly driving the whole gap
+  if(S.state!=='moving'){                                    // was in a stop when suspended
+    S.stops.push((t-driveT)-S.stopStart);S.state='moving';   // close that stop at estimated departure
+  } else if(stopT>STOP_CONFIRM_S){S.stops.push(stopT)}
+  S.dist+=d;S.moving+=driveT;S.stopped+=stopT;S.gap+=dt;
+  $('msg').textContent=`Filled ${fmtT(dt)} gap: ~${(d/1000).toFixed(1)} km driven, ~${fmtT(stopT)} stopped.`;
+  return true;
+}
+
+// ---- live tracking ----
+function onPos(p){
+  const c=p.coords,t=p.timestamp/1000;
+  $('gps').textContent=`GPS ±${Math.round(c.accuracy)} m`;
+  if(!S.last&&S.lastFix&&reconcile(c,t)){S.last=null}
+  let v=c.speed;
+  if(S.last){
+    const dt=t-S.last.t;if(dt<=0)return;
+    if(dt>=GAP_S&&reconcile(c,t)){S.last={c,t};S.ema=0;return}
+    const d=hav({lat:S.last.c.latitude,lon:S.last.c.longitude},{lat:c.latitude,lon:c.longitude});
+    if(v==null||v<0)v=d/dt;
+    if(c.accuracy<=MIN_ACC_M&&S.last.c.accuracy<=MIN_ACC_M&&d>c.accuracy*0.5)S.dist+=d;
+    if(S.state==='moving'||S.state==='idle')S.moving+=dt;else S.stopped+=dt;
+  } else if(v==null||v<0)v=0;
+  S.last={c,t};S.lastFix={lat:c.latitude,lon:c.longitude,t};
+  if(S.route&&c.accuracy<=MIN_ACC_M){const s=snap({lat:c.latitude,lon:c.longitude});
+    if(s.off<OFFROUTE_M){S.prog=Math.max(S.prog,s.along);$('routeNote').textContent=`On route · ${(S.prog/1000).toFixed(1)} of ${(S.route.total/1000).toFixed(1)} km`}
+    else $('routeNote').textContent=`Off route by ${Math.round(s.off)} m — remaining frozen until back on route`;}
+  if(map){const ll=[c.latitude,c.longitude];meMarker?meMarker.setLatLng(ll):meMarker=L.circleMarker(ll,{radius:6,color:'#5fd39a',fillOpacity:1}).addTo(map)}
+  S.ema=S.ema?S.ema*(1-EMA)+v*EMA:v;
+  S.spd=S.ema*3.6;if(S.spd>S.max)S.max=S.spd;
+  detect(t);
+}
+function detect(t){
+  const kmh=S.spd;
+  if(S.state==='idle')S.state='moving';
+  if(S.state==='moving'){
+    if(kmh<STOP_KMH){if(!S.belowSince)S.belowSince=t;
+      if(t-S.belowSince>=STOP_CONFIRM_S){S.state='brief';S.stopStart=S.belowSince;S.preAvg=mavg();S.preDist=S.dist}
+    }else{S.belowSince=0;S.preSpd=kmh}
+  }else if(kmh>=RESUME_KMH){S.stops.push(t-S.stopStart);S.state='moving';S.belowSince=0;S.ema=kmh/3.6}
+  else if(S.state==='brief'&&t-S.stopStart>BRIEF_MAX_S)S.state='stopped';
+}
+
+function sdTxt(){const st=S.state;return st==='moving'||st==='idle'?'—':fmtT(Date.now()/1000-S.stopStart)}
+function fast(){
+  const now=Date.now()/1000,ma=mavg(),cur=S.on&&S.state==='moving'?S.spd:0;
+  setV('d1',fu(cur/60));setV('d30',fu(cur/2));setV('d60',fu(cur));
+  setV('a1',fu(ma/60));setV('a30',fu(ma/2));setV('a60',fu(ma));
+  const live=S.dist/1000+(S.on&&S.state==='moving'&&S.lastFix?S.spd/3600*Math.min(5,now-S.lastFix.t):0);
+  setV('odo',fu(live)+' '+UNIT);
+  setV('clock',new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}));
+  setV('date',new Date().toLocaleDateString([],{weekday:'short',day:'numeric',month:'short'}));
+  document.querySelectorAll('.ul').forEach(e=>e.textContent=UNIT);
+}
+function render(){
+  if(!S.on)return;save();
+  const now=Date.now()/1000,st=S.state;
+  document.body.className=st;
+  $('stText').textContent={moving:'Moving',brief:'Brief stop',stopped:'Stopped'}[st]||'Waiting for GPS';
+  const cur=st==='moving'?S.spd:0,ma=mavg(),ta=tavg();
+  setV('spd',Math.round(cur));
+  setV('mavg',ma?ma.toFixed(0):'—');setV('tavg',ta?ta.toFixed(0):'—');setV('max',S.max?S.max.toFixed(0):'—');
+  fast();
+  const rem=remainingKm();setV('rem',rem.toFixed(1)+' km');
+  const eta=v=>v>0.5?fmtT(rem/v*3600):'—';
+  setV('etaC',eta(cur));setV('etaM',eta(ma));setV('etaT',eta(ta));
+  const ref=ma||cur;setV('arr',ref>0.5?clock(now+rem/ref*3600):'—');
+  setV('dist',(S.dist/1000).toFixed(2)+' km');setV('el',fmtT(now-S.start));
+  setV('mov',fmtT(S.moving));setV('stp',fmtT(S.stopped));setV('gap',fmtT(S.gap));
+  setV('state',$('stText').textContent);setV('stopFor2',sdTxt());
+  const sd=st!=='moving'&&st!=='idle'?now-S.stopStart:0,lostS=S.preSpd*sd/3600,lostA=S.preAvg*sd/3600;
+  $('briefBox').classList.toggle('hide',st!=='brief');$('stopBox').classList.toggle('hide',st!=='stopped');
+  setV('lost',lostS.toFixed(1)+' km');
+  if(st==='brief')$('briefTxt').textContent=`Paused ${fmtT(sd)} · +${fmtT(sd)} to arrival · ${lostS.toFixed(1)} km behind pace`;
+  if(st==='stopped'){
+    $('stopFor').textContent=fmtT(sd);$('stopDelay').textContent=fmtT(sd);
+    $('preSpd').textContent=S.preSpd.toFixed(0);$('preAvg').textContent=S.preAvg.toFixed(0);
+    $('lostS').textContent=lostS.toFixed(1)+' km';$('lostA').textContent=lostA.toFixed(1)+' km';
+    $('lostKm').textContent=(S.preDist/1000+lostS).toFixed(1)+' km';
+    $('etaGrow').textContent=S.preSpd>0.5?fmtT(rem/S.preSpd*3600+sd):'—';
+  }
+}
+
+async function start(){
+  if(!navigator.geolocation){$('msg').textContent='Geolocation not supported. Use HTTPS.';return}
+  S.on=true;if(!S.start)S.start=Date.now()/1000;S.state=S.state==='idle'?'idle':S.state;S.last=null;
+  $('sumBox').classList.add('hide');$('msg').textContent='';
+  S.watch=navigator.geolocation.watchPosition(onPos,e=>{$('msg').textContent='GPS error: '+e.message+(e.code===1?' — allow Location for this site (needs HTTPS).':'')},
+    {enableHighAccuracy:true,maximumAge:0,timeout:15000});
+  try{S.wake=await navigator.wakeLock?.request('screen')}catch{}
+  $('startBtn').textContent='End trip';$('startBtn').classList.remove('primary');
+}
+function stop(){
+  S.on=false;navigator.geolocation.clearWatch(S.watch);S.wake?.release?.();S.wake=null;
+  if(S.state!=='moving'&&S.state!=='idle'&&S.stopStart)S.stops.push(Date.now()/1000-S.stopStart);
+  S.end=Date.now()/1000;save();
+  $('startBtn').textContent='Start trip';$('startBtn').classList.add('primary');document.body.className='';$('stText').textContent='Ended';
+  summary();
+}
+function reset(){
+  if(S.on)stop();try{localStorage.removeItem('trip')}catch{}
+  Object.assign(S,{start:0,moving:0,stopped:0,dist:0,spd:0,ema:0,max:0,last:null,state:'idle',belowSince:0,stopStart:0,preSpd:0,preAvg:0,preDist:0,stops:[],end:0,route:null,prog:0,gap:0,lastFix:null});
+  dest=null;routeOpts=[];if(routeLayer)routeLayer.clearLayers();if(meMarker){meMarker.remove();meMarker=null}
+  $('map').classList.add('hide');$('routes').innerHTML='';$('places').innerHTML='';$('q').value='';
+  $('target').disabled=false;$('target').value=100;$('tgtLabel').textContent='Distance to cover (km)';$('routeNote').textContent='No route set. Remaining distance will use the manual target below.';
+  document.querySelectorAll('.v,.row span:last-child').forEach(e=>e.textContent='—');$('spd').textContent='0';$('stText').textContent='Not started';
+  $('briefBox').classList.add('hide');$('stopBox').classList.add('hide');$('sumBox').classList.add('hide');$('msg').textContent='';
+}
+function summary(){
+  const km=S.dist/1000,el=(S.end||Date.now()/1000)-S.start,tgt=+$('target').value||0,ma=mavg(),ta=tavg();
+  const n=S.stops.length,longest=n?Math.max(...S.stops):0,brief=S.stops.filter(x=>x<=BRIEF_MAX_S).length;
+  const cells=[[km.toFixed(2)+' km','distance'],[fmtT(el),'total time'],[fmtT(S.moving),'moving'],[fmtT(S.stopped),'stopped'],
+    [ma.toFixed(1),'moving avg km/h'],[ta.toFixed(1),'trip avg km/h'],[S.max.toFixed(0),'max km/h'],[(el?S.moving/el*100:0).toFixed(0)+'%','time in motion'],
+    [n,'stops ('+brief+' brief)'],[fmtT(longest),'longest stop'],[ma>0.5?fmtT(km/ma*3600):'—','would have taken with no stops'],
+    [tgt?Math.min(100,km/tgt*100).toFixed(0)+'% of '+tgt+' km':'—',S.route?'route covered':'target covered'],
+    [clock(S.start)+' – '+clock(S.end),'window'],[fmtT(S.gap),'reconstructed (app suspended)'],
+    [ma>0.5&&remainingKm()>0.1?fmtT(remainingKm()/ma*3600):'done','left to destination at moving avg']];
+  $('sumGrid').innerHTML=cells.map(([v,l])=>`<div><div class="v">${v}</div><div class="l">${l}</div></div>`).join('');
+  $('sumBox').classList.remove('hide');
+}
+(function restore(){
+  const o=load();if(!o||!o.start)return;
+  KEYS.forEach(k=>{if(k in o)S[k]=o[k]});$('target').value=o.target||100;S.on=false;S.last=null;
+  if(S.route){$('target').disabled=true;$('tgtLabel').textContent='Route length (km)';showMap([S.route]);
+    $('routeNote').textContent=`Route restored · ${(S.prog/1000).toFixed(1)} of ${(S.route.total/1000).toFixed(1)} km done`}
+  if(o.end)summary();
+  else{$('stText').textContent='Unfinished trip found';$('startBtn').textContent='Resume trip';$('msg').textContent='Tap Resume to continue — the gap since last fix will be reconstructed.'}
+})();
+$('startBtn').onclick=()=>S.on?stop():start();
+$('resetBtn').onclick=reset;
+$('units').onclick=e=>{const b=e.target.closest('[data-u]');if(!b)return;UNIT=b.dataset.u;[...$('units').children].forEach(x=>x.classList.toggle('sel',x===b));fast()};
+setInterval(fast,100);
+
+// ---- standby ----
+const WIDGETS=[
+ ['speed',`<div class="big" data-v="spd">0</div><div class="lab">km/h · <span data-v="state">—</span></div>`],
+ ['clock',`<div class="big" data-v="clock"></div><div class="lab" data-v="date"></div>`],
+ ['cover',`<div class="mid" data-v="d1">0</div><div class="lab"><span class="ul">km</span> per minute at current speed</div><div class="mid" style="margin-top:18px" data-v="d60">0</div><div class="lab"><span class="ul">km</span> per hour</div>`],
+ ['odo',`<div class="mid" data-v="odo">0</div><div class="lab">travelled · live odometer</div>`],
+ ['eta',`<div class="mid" data-v="rem">—</div><div class="lab">remaining</div><div class="mid" style="margin-top:18px" data-v="etaM">—</div><div class="lab">at moving avg · arrive <span data-v="arr">—</span></div>`],
+ ['stop',`<div class="mid wrn" data-v="stopFor2">—</div><div class="lab">stopped for</div><div class="mid amb" style="margin-top:18px" data-v="lost">0.0 km</div><div class="lab">behind pace at pre-stop speed</div>`],
+ ['stats',`<div class="kv"><span>travelled</span><span data-v="dist">—</span><span>moving avg</span><span data-v="mavg">—</span><span>trip avg</span><span data-v="tavg">—</span><span>max</span><span data-v="max">—</span><span>elapsed</span><span data-v="el">—</span><span>moving</span><span data-v="mov">—</span><span>stopped</span><span data-v="stp">—</span></div>`]];
+function buildPane(pane,dots,startIdx){
+  pane.innerHTML=WIDGETS.map(w=>`<div class="w" data-w="${w[0]}">${w[1]}</div>`).join('');
+  dots.innerHTML=WIDGETS.map((_,i)=>`<i class="${i===startIdx?'cur':''}"></i>`).join('');
+  pane.addEventListener('scroll',()=>{const i=Math.round(pane.scrollTop/pane.clientHeight);[...dots.children].forEach((d,j)=>d.classList.toggle('cur',j===i))},{passive:true});
+  requestAnimationFrame(()=>pane.scrollTo({top:startIdx*pane.clientHeight,behavior:'instant'}));
+}
+const landscape=()=>matchMedia('(orientation: landscape)').matches;
+function enterSB(forced){
+  $('sb').classList.toggle('rot',forced&&!landscape());
+  $('sb').classList.add('on');$('sbExit').classList.remove('hide');
+  if(!$('sb').classList.contains('rot'))document.documentElement.requestFullscreen?.().catch(()=>{});
+  buildPane($('paneL'),$('dotsL'),0);buildPane($('paneR'),$('dotsR'),4);
+  fast();render();
+}
+function exitSB(){$('sb').classList.remove('on','rot');$('sbExit').classList.add('hide');document.exitFullscreen?.().catch(()=>{})}
+$('sbBtn').onclick=()=>enterSB(true);
+matchMedia('(orientation: landscape)').addEventListener('change',e=>{
+  const on=$('sb').classList.contains('on');
+  if(e.matches&&!on)enterSB(false);
+  else if(e.matches&&on&&$('sb').classList.contains('rot')){$('sb').classList.remove('rot');buildPane($('paneL'),$('dotsL'),0);buildPane($('paneR'),$('dotsR'),4)}
+  else if(!e.matches&&on&&!$('sb').classList.contains('rot'))exitSB();
+});$('sbExit').onclick=exitSB;
+let lastTap=0;$('sb').addEventListener('click',()=>{const n=Date.now();if(n-lastTap<350)exitSB();lastTap=n});
+$('qBtn').onclick=geocode;$('q').addEventListener('keydown',e=>{if(e.key==='Enter')geocode()});
+document.addEventListener('visibilitychange',async()=>{if(!document.hidden&&S.on){S.last=null;if(!S.wake){try{S.wake=await navigator.wakeLock?.request('screen')}catch{}}}});
+setInterval(render,1000);
+</script>
+</body>
+</html>
