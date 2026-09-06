@@ -249,6 +249,7 @@ input.num{width:104px;font-size:21px;text-align:right;
     <span>Moving avg<b id="mavg">—</b></span>
     <span>Trip avg<b id="tavg">—</b></span>
     <span>Maximum<b id="max">—</b></span>
+    <span>Left <span class="ul">km</span><b id="rem2">—</b></span>
   </div>
 </div>
 
@@ -553,7 +554,9 @@ function fast(){
   setN('spd',cur);
   setN('d1',cur/60);setN('d30',cur/2);setN('d60',cur);
   setN('a1',ma/60);setN('a30',ma/2);setN('a60',ma);
-  setN('odo',S.dist/1000+(S.on&&S.state==='moving'&&S.lastFix?S.spd/3600*Math.min(5,now-S.lastFix.t):0));
+  const bleed=S.on&&S.state==='moving'&&S.lastFix?S.spd/3600*Math.min(5,now-S.lastFix.t):0;
+  setN('rem2',Math.max(0,remainingKm()-bleed));
+  setN('odo',S.dist/1000+bleed);
   setV('clock',new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}));
   setV('date',new Date().toLocaleDateString([],{weekday:'short',day:'numeric',month:'short'}));
   document.querySelectorAll('.ul').forEach(e=>e.textContent=UNIT);
@@ -609,7 +612,7 @@ function reset(){
   $('map').classList.add('hide');$('routes').innerHTML='';$('places').innerHTML='';$('q').value='';
   $('target').disabled=false;$('target').value=100;$('tgtLabel').textContent='Distance to cover (km)';$('routeNote').textContent='No route set. Remaining distance will use the manual target below.';
   // .v cells and #odo are live-computed by fast() every 100 ms — blanking them here only flickers
-  document.querySelectorAll('.row span:last-child:not(#odo),.speed .sub b').forEach(e=>e.textContent='—');snapN();$('stText').textContent='Not started';
+  document.querySelectorAll('.row span:last-child:not(#odo),.speed .sub b:not(#rem2)').forEach(e=>e.textContent='—');snapN();$('stText').textContent='Not started';
   $('briefBox').classList.add('hide');$('stopBox').classList.add('hide');$('sumBox').classList.add('hide');msg('');
 }
 function summary(){
